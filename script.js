@@ -101,6 +101,10 @@ postData(url, body).then(function(data) {
   width = data.length * 75 - margin.left - margin.right,
   height = 400 - margin.top - margin.bottom;
 
+  const text1 = document.createElement('text')
+  text1.innerHTML = 'Before'
+  document.body.prepend(text1)
+
   // append the svg object to the body of the page
   var svg = d3.select("#my_dataviz")
     .append("svg")
@@ -110,6 +114,10 @@ postData(url, body).then(function(data) {
     .attr("transform",
       "translate(" + margin.left + "," + margin.top + ")"
     );
+
+  const text2 = document.createElement('text')
+  text2.innerHTML = 'After'
+  document.body.append(text2)
 
   // Add X axis
   var x = d3.scaleBand()
