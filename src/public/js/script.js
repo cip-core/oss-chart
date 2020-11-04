@@ -1,50 +1,19 @@
-const nValues = 7
 const apiBaseUrl = window.location.origin.indexOf('file://') === 0 ? 'http://localhost:3000' : window.location.origin
 
 const url = apiBaseUrl + '/api/tsdb/query'
 
-const select = document.createElement('select')
-select.setAttribute('id', 'select')
-select.setAttribute('multiple', '')
-select.setAttribute('size', '1')
-const brands = ['Google', 'Microsoft', 'IBM']
-for (const brand of brands) {
-    const option = document.createElement('option')
-    option.setAttribute('value', brand)
-    option.innerHTML = brand
-    select.append(option)
-}
-document.body.append(select)
-let mySelect = new vanillaSelectBox("#select",{
-    search: true,
-    maxHeight: 400,
-    disableSelectAll: false,
-});
-mySelect.enable()
+createMultipleSelectionList()
 
-main()
-
-async function main() {
-  // Data to send via POST request to API
-  const body = {
-    from: "1446545259582",
-    to: new Date().getTime().toString(),
-    queries: [
-      {
-        refId: "A",
-        intervalMs: 86400000,
-        maxDataPoints: 814,
-        datasourceId: 1,
-        rawSql: createSQLQuery('hcomprcreators', ['d', 'w', 'm', 'y']),
-        format: "table"
-      }
-    ]
-  }
-
+async function main(companies) {
+  const metrics = 'hcomprcreators'
+  const periods = ['d', 'w', 'm', 'y']
+  // SQL query to send
+  const query = `select name, value, period from \"shcom\" where series = '${metrics}' and period in (${periods.map(p => `'${p}'`).join(', ')})`
   // Retrieve data from API
-  const data = await postData(url, body)
+  const data = await postData(query)
+
   // Build Chart
-  const svg = buildChart(data)
+  const svg = buildChart(data, companies)
   // HTML element to add before the chart
   const before = d3.create('text')
       .text('Before')
@@ -64,13 +33,53 @@ async function main() {
   d3.select('body').append(() => div.node())
 }
 
-function createSQLQuery(series, periods) {
-  // original request
-  // "select (row_number() over (order by value desc) -1) as \"Rank\", name, value from \"shcom\" where series = 'hcomprcreators' and period = 'm'",
-  return `select name, value, period from \"shcom\" where series = '${series}' and period in (${periods.map(p => `'${p}'`).join(', ')})`
+async function createMultipleSelectionList() {
+    // retrieve companies list
+    const query = "select name from \"shcom\" where series = 'hcomcontributions' and period = 'y10'"
+
+    const data = await postData(query)
+    const companies = data.results['A'].tables[0].rows.slice(1).flat()
+    //companies.sort() // Sort alphabetically
+
+    const select = document.createElement('select')
+    select.setAttribute('id', 'select')
+    select.setAttribute('multiple', '')
+    select.setAttribute('size', '1')
+
+    for (const company of companies) {
+        const option = document.createElement('option')
+        option.setAttribute('value', company)
+        option.innerHTML = company
+        select.append(option)
+    }
+
+    const button = document.createElement('button')
+    button.innerHTML = 'Update'
+
+    const div = document.createElement('div')
+    div.setAttribute('id', 'selection')
+
+    div.append(select)
+    div.append(button)
+
+    document.body.prepend(div)
+
+    const multipleSelection = new vanillaSelectBox("#select",{
+        search: true,
+        maxHeight: 400,
+        disableSelectAll: true,
+    });
+    multipleSelection.enable()
+
+    button.onclick = function (event) {
+        const selectedCompanies = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1)
+        main(selectedCompanies.map(element => element.getAttribute('data-value')))
+    }
+
+    return multipleSelection
 }
 
-function preprocessData(data) {
+function preprocessData(data, companies) {
   const table = data.results['A'].tables[0]
   table.columns = table.columns.map(obj => obj.text)
 
@@ -92,17 +101,20 @@ function preprocessData(data) {
     obj[name] = value
   })
 
-  const out = Object.values(dictValues)
+  let out = []
+  for (const key in dictValues) {
+    if (companies.indexOf(key) !== -1) {
+      out.push(dictValues[key])
+    }
+  }
   out.columns = keys
 
   return out
 }
 
-function buildChart(data) {
-  data = preprocessData(data)
+function buildChart(data, companies) {
+  data = preprocessData(data, companies)
   var columns = data.columns
-
-  data = data.slice(1, nValues + 1) // Remove first element because of "All"
 
   // List of subgroups = header of the csv files = soil condition here
   var subgroups = columns.slice(1)
@@ -182,7 +194,23 @@ function buildChart(data) {
   return svg
 }
 
-async function postData(url = '', data = {}) {
+async function postData(query) {
+  // Data to send via POST request to API
+  const data = {
+    from: "1446545259582",
+    to: new Date().getTime().toString(),
+    queries: [
+      {
+        refId: "A",
+        intervalMs: 86400000,
+        maxDataPoints: 814,
+        datasourceId: 1,
+        rawSql: query,
+        format: "table"
+      }
+    ]
+  }
+
   // Default options are marked with *
   const response = await fetch(url, {
     method: 'POST', // *GET, POST, PUT, DELETE, etc.
