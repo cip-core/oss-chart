@@ -2,48 +2,72 @@ const nValues = 7
 const apiBaseUrl = window.location.origin.indexOf('file://') === 0 ? 'http://localhost:3000' : window.location.origin
 
 const url = apiBaseUrl + '/api/tsdb/query'
-const body = {
-  from: "1446545259582",
-  to: "1604398059582",
-  queries: [
-    {
-      refId: "A",
-      intervalMs: 86400000,
-      maxDataPoints: 814,
-      datasourceId: 1,
-      // original request
-      //rawSql: "select (row_number() over (order by value desc) -1) as \"Rank\", name, value from \"shcom\" where series = 'hcomprcreators' and period = 'm'",
-      rawSql: "select name, value, period from \"shcom\" where series = 'hcomprcreators' and period in ('d', 'w', 'm', 'y')",
-      format: "table"
-    }
-  ]
+
+const select = document.createElement('select')
+select.setAttribute('id', 'select')
+select.setAttribute('multiple', '')
+select.setAttribute('size', '1')
+const brands = ['Google', 'Microsoft', 'IBM']
+for (const brand of brands) {
+    const option = document.createElement('option')
+    option.setAttribute('value', brand)
+    option.innerHTML = brand
+    select.append(option)
+}
+document.body.append(select)
+let mySelect = new vanillaSelectBox("#select",{
+    search: true,
+    maxHeight: 400,
+    disableSelectAll: false,
+});
+mySelect.enable()
+
+main()
+
+async function main() {
+  // Data to send via POST request to API
+  const body = {
+    from: "1446545259582",
+    to: new Date().getTime().toString(),
+    queries: [
+      {
+        refId: "A",
+        intervalMs: 86400000,
+        maxDataPoints: 814,
+        datasourceId: 1,
+        rawSql: createSQLQuery('hcomprcreators', ['d', 'w', 'm', 'y']),
+        format: "table"
+      }
+    ]
+  }
+
+  // Retrieve data from API
+  const data = await postData(url, body)
+  // Build Chart
+  const svg = buildChart(data)
+  // HTML element to add before the chart
+  const before = d3.create('text')
+      .text('Before')
+  // HTML element to add after the chart
+  const after = d3.create('text')
+      .text('After')
+
+  // Main div where elements are going to be stored
+  const div = d3.create('div')
+      .attr('class', 'graph')
+  // Add previously built elements
+  div.append(() => before.node())
+  div.append(() => svg.node())
+  div.append(() => after.node())
+
+  // Add everything in the "body" page
+  d3.select('body').append(() => div.node())
 }
 
-async function postData(url = '', data = {}) {
-  // Default options are marked with *
-  const response = await fetch(url, {
-    method: 'POST', // *GET, POST, PUT, DELETE, etc.
-    /*
-    mode: 'no-cors', // no-cors, *cors, same-origin
-    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: 'same-origin', // include, *same-origin, omit
-    */
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      //'Access-Control-Allow-Origin': '*',
-      //'Connection': 'keep-alive',
-      //'Host': 'k8s.devstats.cncf.io',
-      //'Acept-Encoding': 'gzip, deflate, br',
-      //'USer-Agent': 'PostmanRuntime/7.26.8',
-    },
-    /*
-    redirect: 'follow', // manual, *follow, error
-    referrerPolicy: 'strict-origin-when-cross-origin', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-    */
-    body: JSON.stringify(data) // body data type must match "Content-Type" header
-  });
-  return response.json(); // parses JSON response into native JavaScript objects
+function createSQLQuery(series, periods) {
+  // original request
+  // "select (row_number() over (order by value desc) -1) as \"Rank\", name, value from \"shcom\" where series = 'hcomprcreators' and period = 'm'",
+  return `select name, value, period from \"shcom\" where series = '${series}' and period in (${periods.map(p => `'${p}'`).join(', ')})`
 }
 
 function preprocessData(data) {
@@ -74,7 +98,7 @@ function preprocessData(data) {
   return out
 }
 
-postData(url, body).then(function(data) {
+function buildChart(data) {
   data = preprocessData(data)
   var columns = data.columns
 
@@ -101,23 +125,15 @@ postData(url, body).then(function(data) {
   width = data.length * 75 - margin.left - margin.right,
   height = 400 - margin.top - margin.bottom;
 
-  const text1 = document.createElement('text')
-  text1.innerHTML = 'Before'
-  document.body.prepend(text1)
-
   // append the svg object to the body of the page
-  var svg = d3.select("#my_dataviz")
-    .append("svg")
+  var svg = d3.create('svg')
+  svg
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform",
       "translate(" + margin.left + "," + margin.top + ")"
     );
-
-  const text2 = document.createElement('text')
-  text2.innerHTML = 'After'
-  document.body.append(text2)
 
   // Add X axis
   var x = d3.scaleBand()
@@ -162,4 +178,33 @@ postData(url, body).then(function(data) {
     .attr("width", xSubgroup.bandwidth())
     .attr("height", function(d) { return height - y(d.value); })
     .attr("fill", function(d) { return color(d.key); });
-})
+
+  return svg
+}
+
+async function postData(url = '', data = {}) {
+  // Default options are marked with *
+  const response = await fetch(url, {
+    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+    /*
+    mode: 'no-cors', // no-cors, *cors, same-origin
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: 'same-origin', // include, *same-origin, omit
+    */
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      //'Access-Control-Allow-Origin': '*',
+      //'Connection': 'keep-alive',
+      //'Host': 'k8s.devstats.cncf.io',
+      //'Acept-Encoding': 'gzip, deflate, br',
+      //'USer-Agent': 'PostmanRuntime/7.26.8',
+    },
+    /*
+    redirect: 'follow', // manual, *follow, error
+    referrerPolicy: 'strict-origin-when-cross-origin', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+    */
+    body: JSON.stringify(data) // body data type must match "Content-Type" header
+  });
+  return response.json(); // parses JSON response into native JavaScript objects
+}
