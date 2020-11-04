@@ -6,7 +6,7 @@ const instance = axios.create({
 });
 const router = express.Router();
 
-router.get('/*', officialApi);
+//router.get('/*', officialApi); // Not used by API
 router.post('/*', officialApi);
 
 async function officialApi(req, res, next) {

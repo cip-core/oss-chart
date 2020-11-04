@@ -15,12 +15,10 @@ async function init() {
   app.use(cors)
   app.use(preprocessRequest)
   app.use(logRequest)
-  app.get('/index.html', function(req, res) {
-    res.sendFile(path.join(__dirname + '/index.html'));
+  app.get('/', function(req, res) {
+    res.redirect('/index.html')
   })
-  app.get('/script.js', function(req, res) {
-    res.sendFile(path.join(__dirname + '/script.js'));
-  })
+  app.use(express.static(__dirname + '/public'))
   app.use('/', route)
 
   return app
