@@ -131,6 +131,31 @@ function preprocessData(data, companies) {
   return out
 }
 
+function transformPercentage(data) {
+  const subgroups = data.columns.slice(1)
+  const sums = {}
+  for (const subgroup of subgroups) {
+    for (const company of data) {
+      const sum = sums[subgroup] || 0
+      sums[subgroup] = sum + (company[subgroup] || 0) // count 0 if no value
+    }
+  }
+
+  for (const subgroup of subgroups) {
+    const subgroupTotal = sums[subgroup] || 1 // avoid divide by 0
+    for (const company of data) {
+      company[subgroup] = company[subgroup] || 0 // count 0 if no value
+      const percentage = company[subgroup] / subgroupTotal * 100
+      company[subgroup] = {
+        value: company[subgroup],
+        percentage: Math.round(percentage * 100) / 100,
+      }
+    }
+  }
+
+  return data
+}
+
 const tooltip = d3.select("body").append("div")
   .attr("class", "tooltip")
   .style("opacity", 0);
@@ -147,21 +172,14 @@ function buildChart(data, companies) {
     return shortTimes.indexOf(a) < shortTimes.indexOf(b) ? 1 : -1
   })
 
-  let maxValue = 0
-  for (const obj of data) {
-    for (const key of Object.keys(obj)) {
-      if (subgroups.indexOf(key) !== -1) {
-        const value = obj[key]
-        if (value > maxValue) maxValue = value
-      }
-    }
-  }
+  // Transform data to percentage
+  data = transformPercentage(data)
 
   // List of groups = species here = value of the first column called group -> I show them on the X axis
   var groups = d3.map(data, function(d){return(d[columns[0]])}).keys()
 
   // set the dimensions and margins of the graph
-  var margin = {top: 10, right: 30, bottom: 20, left: 50},
+  var margin = {top: 10, right: 30, bottom: 20, left: 30},
   width = data.length * 75 - margin.left - margin.right,
   height = 400 - margin.top - margin.bottom;
 
@@ -182,7 +200,7 @@ function buildChart(data, companies) {
 
   // Add Y axis
   var y = d3.scaleLinear()
-    .domain([0, maxValue])
+    .domain([0, 100])
     .range([ height, 0 ]);
   svg.append("g")
     .attr("transform", `translate(${margin.left}, ${margin.top})`)
@@ -208,14 +226,19 @@ function buildChart(data, companies) {
     .append("g")
     .attr("transform", function(d) { return `translate(${x(d[columns[0]]) + margin.left}, ${margin.top})`; })
     .selectAll("rect")
-    .data(function(d) { return subgroups.map(function(key) { return {key: key, value: d[key]}; }); })
+    .data(function(d) {
+      return subgroups.map(function(key) {
+        const subgroupValue = d[key]
+        return { key: key, value: subgroupValue.value, percentage: subgroupValue.percentage };
+      }); $
+    })
     .enter().append("rect")
     .on("mouseover", function(d) {
       tooltip.transition()
         .duration(200)
         .style("opacity", .9);
       const time = times.filter(o => o.short === d.key)[0]
-      tooltip.html(`Last ${time.long} :<br>${d.value}`)
+      tooltip.html(`Last ${time.long} : ${d.value}<br>(${d.percentage}%)`)
         .style("left", (d3.event.pageX) + "px")
         .style("top", (d3.event.pageY - 28) + "px");
     })
@@ -225,9 +248,9 @@ function buildChart(data, companies) {
         .style("opacity", 0);
     })
     .attr("x", function(d) { return xSubgroup(d.key); })
-    .attr("y", function(d) { return y(d.value); })
+    .attr("y", function(d) { return y(d.percentage); })
     .attr("width", xSubgroup.bandwidth())
-    .attr("height", function(d) { return height - y(d.value); })
+    .attr("height", function(d) { return height - y(d.percentage); })
     .attr("fill", function(d) { return color(d.key); });
 
   return svg
