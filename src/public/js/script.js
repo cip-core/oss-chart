@@ -2,6 +2,24 @@ const apiBaseUrl = window.location.origin.indexOf('file://') === 0 ? 'http://loc
 
 const url = apiBaseUrl + '/api/tsdb/query'
 const defaultCompanies = ['Google', 'Microsoft', 'IBM']
+const times = [
+  {
+    short: 'd',
+    long: 'day',
+  },
+  {
+    short: 'w',
+    long: 'week',
+  },
+  {
+    short: 'm',
+    long: 'month',
+  },
+  {
+    short: 'y',
+    long: 'year',
+  },
+]
 
 createMultipleSelectionList().then(function (dropdown) {
   // Set selected companies by default
@@ -20,7 +38,7 @@ function updateGraphs(companies) {
 }
 
 async function updateGraph(div, metrics, companies) {
-  const periods = ['d', 'w', 'm', 'y']
+  const periods = times.map(t => t.short)
   // SQL query to send
   const query = `select name, value, period from \"shcom\" where series = '${metrics}' and period in (${periods.map(p => `'${p}'`).join(', ')})`
   // Retrieve data from API
@@ -113,13 +131,22 @@ function preprocessData(data, companies) {
   return out
 }
 
+const tooltip = d3.select("body").append("div")
+  .attr("class", "tooltip")
+  .style("opacity", 0);
+
 function buildChart(data, companies) {
   data = preprocessData(data, companies)
   var columns = data.columns
 
   // List of subgroups = header of the csv files = soil condition here
   var subgroups = columns.slice(1)
-  
+  // Sort columns according to "times" list
+  const shortTimes = times.map(t => t.short)
+  subgroups.sort(function(a, b) {
+    return shortTimes.indexOf(a) < shortTimes.indexOf(b) ? 1 : -1
+  })
+
   let maxValue = 0
   for (const obj of data) {
     for (const key of Object.keys(obj)) {
@@ -143,10 +170,6 @@ function buildChart(data, companies) {
   svg
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform",
-      "translate(" + margin.left + "," + margin.top + ")"
-    );
 
   // Add X axis
   var x = d3.scaleBand()
@@ -154,7 +177,7 @@ function buildChart(data, companies) {
     .range([0, width ])
     .padding([0.2])
   svg.append("g")
-    .attr("transform", "translate(0," + height + ")")
+    .attr("transform", `translate(${margin.left}, ${height + margin.top})`)
     .call(d3.axisBottom(x).tickSize(0));
 
   // Add Y axis
@@ -162,6 +185,7 @@ function buildChart(data, companies) {
     .domain([0, maxValue])
     .range([ height, 0 ]);
   svg.append("g")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`)
     .call(d3.axisLeft(y));
 
   // Another scale for subgroup position?
@@ -182,10 +206,24 @@ function buildChart(data, companies) {
     .data(data)
     .enter()
     .append("g")
-    .attr("transform", function(d) { return "translate(" + x(d[columns[0]]) + ",0)"; })
+    .attr("transform", function(d) { return `translate(${x(d[columns[0]]) + margin.left}, ${margin.top})`; })
     .selectAll("rect")
     .data(function(d) { return subgroups.map(function(key) { return {key: key, value: d[key]}; }); })
     .enter().append("rect")
+    .on("mouseover", function(d) {
+      tooltip.transition()
+        .duration(200)
+        .style("opacity", .9);
+      const time = times.filter(o => o.short === d.key)[0]
+      tooltip.html(`Last ${time.long} :<br>${d.value}`)
+        .style("left", (d3.event.pageX) + "px")
+        .style("top", (d3.event.pageY - 28) + "px");
+    })
+    .on("mouseout", function(d) {
+      tooltip.transition()
+        .duration(500)
+        .style("opacity", 0);
+    })
     .attr("x", function(d) { return xSubgroup(d.key); })
     .attr("y", function(d) { return y(d.value); })
     .attr("width", xSubgroup.bandwidth())
