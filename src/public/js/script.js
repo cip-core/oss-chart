@@ -1,11 +1,25 @@
 const apiBaseUrl = window.location.origin.indexOf('file://') === 0 ? 'http://localhost:3000' : window.location.origin
 
 const url = apiBaseUrl + '/api/tsdb/query'
+const defaultCompanies = ['Google', 'Microsoft', 'IBM']
 
-createMultipleSelectionList()
+createMultipleSelectionList().then(function (dropdown) {
+  // Set selected companies by default
+  dropdown.setValue(defaultCompanies)
 
-async function main(companies) {
-  const metrics = 'hcomprcreators'
+  const selectedCompanies = Array.from(dropdown.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
+  updateGraphs(selectedCompanies)
+})
+
+function updateGraphs(companies) {
+  const divs = document.querySelectorAll('div.graph')
+  for (const div of divs) {
+    const id = div.getAttribute('id')
+    updateGraph(div, id, companies)
+  }
+}
+
+async function updateGraph(div, metrics, companies) {
   const periods = ['d', 'w', 'm', 'y']
   // SQL query to send
   const query = `select name, value, period from \"shcom\" where series = '${metrics}' and period in (${periods.map(p => `'${p}'`).join(', ')})`
@@ -14,69 +28,56 @@ async function main(companies) {
 
   // Build Chart
   const svg = buildChart(data, companies)
-  // HTML element to add before the chart
-  const before = d3.create('text')
-      .text('Before')
-  // HTML element to add after the chart
-  const after = d3.create('text')
-      .text('After')
 
-  // Main div where elements are going to be stored
-  const div = d3.create('div')
-      .attr('class', 'graph')
-  // Add previously built elements
-  div.append(() => before.node())
-  div.append(() => svg.node())
-  div.append(() => after.node())
-
-  // Add everything in the "body" page
-  d3.select('body').append(() => div.node())
+  // Replace old chart
+  d3.select(div).select('svg').remove()
+  d3.select(div).append(() => svg.node())
 }
 
 async function createMultipleSelectionList() {
-    // retrieve companies list
-    const query = "select name from \"shcom\" where series = 'hcomcontributions' and period = 'y10'"
+  // retrieve companies list
+  const query = "select name from \"shcom\" where series = 'hcomcontributions' and period = 'y10'"
 
-    const data = await postData(query)
-    const companies = data.results['A'].tables[0].rows.slice(1).flat()
-    //companies.sort() // Sort alphabetically
+  const data = await postData(query)
+  const companies = data.results['A'].tables[0].rows.slice(1).flat()
+  //companies.sort() // Sort alphabetically
 
-    const select = document.createElement('select')
-    select.setAttribute('id', 'select')
-    select.setAttribute('multiple', '')
-    select.setAttribute('size', '1')
+  const select = document.createElement('select')
+  select.setAttribute('id', 'select')
+  select.setAttribute('multiple', '')
+  select.setAttribute('size', '1')
 
-    for (const company of companies) {
-        const option = document.createElement('option')
-        option.setAttribute('value', company)
-        option.innerHTML = company
-        select.append(option)
-    }
+  for (const company of companies) {
+    const option = document.createElement('option')
+    option.setAttribute('value', company)
+    option.innerHTML = company
+    select.append(option)
+  }
 
-    const button = document.createElement('button')
-    button.innerHTML = 'Update'
+  const button = document.createElement('button')
+  button.innerHTML = 'Update'
 
-    const div = document.createElement('div')
-    div.setAttribute('id', 'selection')
+  const div = document.createElement('div')
+  div.setAttribute('id', 'selection')
 
-    div.append(select)
-    div.append(button)
+  div.append(select)
+  div.append(button)
 
-    document.body.prepend(div)
+  document.body.prepend(div)
 
-    const multipleSelection = new vanillaSelectBox("#select",{
-        search: true,
-        maxHeight: 400,
-        disableSelectAll: true,
-    });
-    multipleSelection.enable()
+  const multipleSelection = new vanillaSelectBox("#select",{
+      search: true,
+      maxHeight: 400,
+      disableSelectAll: true,
+  });
+  multipleSelection.enable()
 
-    button.onclick = function (event) {
-        const selectedCompanies = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1)
-        main(selectedCompanies.map(element => element.getAttribute('data-value')))
-    }
+  button.onclick = function (event) {
+    const selectedCompanies = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
+    updateGraphs(selectedCompanies)
+  }
 
-    return multipleSelection
+  return multipleSelection
 }
 
 function preprocessData(data, companies) {
