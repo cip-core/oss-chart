@@ -269,6 +269,7 @@ function buildChart(data, companies) {
     .attr("y", function(d) { return y(d.percentage); })
     .attr("width", xSubgroup.bandwidth())
     .attr("height", function(d) { return height - y(d.percentage); })
+    .attr("opacity", 0.8)
     .attr("fill", function(d) { return color(d.key); });
 
   return svg
