@@ -178,10 +178,11 @@ function buildChart(data, companies) {
   // List of groups = species here = value of the first column called group -> I show them on the X axis
   var groups = d3.map(data, function(d){return(d[columns[0]])}).keys()
 
+  const bandWidth = 10
   // set the dimensions and margins of the graph
-  var margin = {top: 10, right: 30, bottom: 20, left: 30},
-  width = data.length * 75 - margin.left - margin.right,
-  height = 400 - margin.top - margin.bottom;
+  const margin = {top: 10, right: 0, bottom: 20, left: 30}
+  const width = (bandWidth * subgroups.length) * (data.length * 2 + 1) // width of the data
+  const height = 370
 
   // append the svg object to the body of the page
   var svg = d3.create('svg')
@@ -193,7 +194,7 @@ function buildChart(data, companies) {
   var x = d3.scaleBand()
     .domain(groups)
     .range([0, width ])
-    .padding([0.2])
+    .padding([1 / 5])
   svg.append("g")
     .attr("transform", `translate(${margin.left}, ${height + margin.top})`)
     .call(d3.axisBottom(x).tickSize(0));
