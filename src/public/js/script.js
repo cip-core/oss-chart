@@ -4,10 +4,6 @@ const url = apiBaseUrl + '/api/tsdb/query'
 const defaultCompanies = ['Google', 'Microsoft', 'IBM']
 const times = [
   {
-    short: 'd',
-    long: 'day',
-  },
-  {
     short: 'w',
     long: 'week',
   },
@@ -16,8 +12,16 @@ const times = [
     long: 'month',
   },
   {
+    short: 'q',
+    long: 'quarter',
+  },
+  {
     short: 'y',
     long: 'year',
+  },
+  {
+    short: 'y10',
+    long: 'decade',
   },
 ]
 
@@ -229,7 +233,7 @@ function buildChart(data, companies) {
   // color palette = one color per subgroup
   var color = d3.scaleOrdinal()
     .domain(subgroups)
-    .range(['#e41a1c','#377eb8','#4daf4a', '#ffa500'])
+    .range(['#3466CC', '#DC3911', '#FF9900' ,'#0F9619', '#990099'])
 
   // Show the bars
   svg.append("g")
