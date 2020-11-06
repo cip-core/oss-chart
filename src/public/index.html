@@ -10,6 +10,53 @@
     <script src="https://d3js.org/d3.v4.js"></script>
   </head>
   <body>
+    <h1>Analysis of contributors to Kubernetes</h1>
+
+    <h2>Data used for this study</h2>
+
+    Statistics used in this report are dynamically collected from <a href='https://k8s.devstats.cncf.io/d/12/dashboards?orgId=1&refresh=15m'>CNCF's devstats server</a>
+
+    <div>
+        <p>Contributions</p>
+        <div class='graph' id="graph_hcomcontributions"></div>
+    </div>
+    <div>
+        <p>Contributors</p>
+        <div class='graph' id="graph_hcomcontributors"></div>
+    </div>
+    <div>
+        <p>Pull Requests</p>
+        <div class='graph' id="graph_hcomprs"></div>
+    </div>
+    <div>
+        <p>Pull Requests Authors</p>
+        <div class='graph' id="graph_hcomprcreators"></div>
+    </div>
+    <div>
+        <p>Pull Request Reviewers</p>
+        <div class='graph' id="graph_hcomprreviewers"></div>
+    </div>
+    <div>
+        <p>Commits</p>
+        <div class='graph' id="graph_hcomcommits"></div>
+    </div>
+    <div>
+        <p>Committers</p>
+        <div class='graph' id="graph_hcomcommitters"></div>
+    </div>
+    <div>
+        <p>Commits Commenters</p>
+        <div class='graph' id="graph_commit_commenters"></div>
+    </div>
+    <div>
+        <p>Comments</p>
+        <div class='graph' id="graph_comments"></div>
+    </div>
+    <div>
+        <p>Commenters</p>
+        <div class='graph' id="graph_commenters"></div>
+    </div>
+    
     <script src="js/script.js"></script>
   </body>
 </html>

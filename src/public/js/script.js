@@ -25,8 +25,18 @@ mySelect.enable()
 main()
 
 async function main() {
+  createGraph('hcomcontributions')
+  createGraph('hcomcontributors')
+  createGraph('hcomprs')
+  createGraph('hcomprcreators')
+  createGraph('hcomprreviewers')
+  createGraph('hcomcommits')
+  createGraph('hcomcommitters')
+}
+
+async function createGraph(metric) {
   // Data to send via POST request to API
-  const body = {
+  const parameters = {
     from: "1446545259582",
     to: new Date().getTime().toString(),
     queries: [
@@ -35,33 +45,22 @@ async function main() {
         intervalMs: 86400000,
         maxDataPoints: 814,
         datasourceId: 1,
-        rawSql: createSQLQuery('hcomprcreators', ['d', 'w', 'm', 'y']),
+        rawSql: createSQLQuery(metric, ['d', 'w', 'm', 'y']),
         format: "table"
       }
     ]
   }
-
-  // Retrieve data from API
-  const data = await postData(url, body)
+  
+  // Retrieve data from API - Contributions
+  const data = await postData(url, parameters)
   // Build Chart
   const svg = buildChart(data)
-  // HTML element to add before the chart
-  const before = d3.create('text')
-      .text('Before')
-  // HTML element to add after the chart
-  const after = d3.create('text')
-      .text('After')
 
   // Main div where elements are going to be stored
-  const div = d3.create('div')
-      .attr('class', 'graph')
-  // Add previously built elements
-  div.append(() => before.node())
-  div.append(() => svg.node())
-  div.append(() => after.node())
-
-  // Add everything in the "body" page
-  d3.select('body').append(() => div.node())
+  const identifier = `#graph_${metric}`
+  const div = d3.select(identifier)
+      .append(() => svg.node())
+  
 }
 
 function createSQLQuery(series, periods) {
