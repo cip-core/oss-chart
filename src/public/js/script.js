@@ -233,7 +233,7 @@ function buildChart(data, companies) {
   // color palette = one color per subgroup
   var color = d3.scaleOrdinal()
     .domain(subgroups)
-    .range(['#3466CC', '#DC3911', '#FF9900' ,'#0F9619', '#990099'])
+    .range(d3.schemeSet1)
 
   // Show the bars
   svg.append("g")
