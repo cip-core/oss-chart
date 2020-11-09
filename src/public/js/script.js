@@ -36,8 +36,12 @@ createMultipleSelectionList().then(function (dropdown) {
 function updateGraphs(companies) {
   const divs = document.querySelectorAll('div.graph')
   for (const div of divs) {
+    const loading = createLoading()
+    div.append(loading)
     const id = div.getAttribute('id')
-    updateGraph(div, id, companies)
+    updateGraph(div, id, companies).then(function() {
+      div.removeChild(loading)
+    })
   }
 }
 
@@ -53,22 +57,43 @@ async function updateGraph(div, metrics, companies) {
 
   // Replace old chart
   d3.select(div).select('svg').remove()
-  d3.select(div).append(() => svg.node())
+  d3.select(div).append(() => svg)
+  resizeSVG(svg)
+}
+
+function resizeSVG(svg) {
+  // Get the bounds of the SVG content
+  const bbox = svg.getBBox();
+  // Update the width and height using the size of the contents
+  svg.setAttribute("width", bbox.x + bbox.width + bbox.x);
+  svg.setAttribute("height", bbox.y + bbox.height + bbox.y);
 }
 
 async function createMultipleSelectionList() {
   // retrieve companies list
   const query = "select name from \"shcom\" where series = 'hcomcontributions' and period = 'y10'"
 
-  const data = await postData(query)
-  const companies = data.results['A'].tables[0].rows.slice(1).flat()
-  //companies.sort() // Sort alphabetically
-
   const select = document.createElement('select')
   select.setAttribute('id', 'select')
   select.setAttribute('multiple', '')
   select.setAttribute('size', '1')
 
+  const button = document.createElement('button')
+  button.innerHTML = 'Update'
+
+  const div = document.getElementById('selection')
+  div.append(select)
+  div.append(button)
+
+  const selectionOptions = {
+    search: true,
+    maxHeight: 400,
+    disableSelectAll: true,
+    placeHolder: 'Loading...',
+  }
+  let multipleSelection = new vanillaSelectBox("#select", selectionOptions);
+
+  const companies = await loadCompanies(query)
   for (const company of companies) {
     const option = document.createElement('option')
     option.setAttribute('value', company)
@@ -76,23 +101,8 @@ async function createMultipleSelectionList() {
     select.append(option)
   }
 
-  const button = document.createElement('button')
-  button.innerHTML = 'Update'
-
-  const div = document.createElement('div')
-  div.setAttribute('id', 'selection')
-
-  div.append(select)
-  div.append(button)
-
-  document.body.prepend(div)
-
-  const multipleSelection = new vanillaSelectBox("#select",{
-      search: true,
-      maxHeight: 400,
-      disableSelectAll: true,
-  });
-  multipleSelection.enable()
+  multipleSelection.destroy()
+  multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
   button.onclick = function (event) {
     const selectedCompanies = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
@@ -100,6 +110,14 @@ async function createMultipleSelectionList() {
   }
 
   return multipleSelection
+}
+
+async function loadCompanies(query) {
+  const data = await postData(query)
+  const companies = data.results['A'].tables[0].rows.slice(1).flat()
+  //companies.sort() // Sort alphabetically
+
+  return companies
 }
 
 function preprocessData(data, companies) {
@@ -204,7 +222,7 @@ function buildChart(data, companies) {
   // append the svg object to the body of the page
   var svg = d3.create('svg')
   svg
-    .attr("width", width + margin.left + margin.right)
+    .attr("width", width + margin.left + margin.right + 200)
     .attr("height", height + margin.top + margin.bottom)
 
   // Add X axis
@@ -237,6 +255,7 @@ function buildChart(data, companies) {
 
   // Show the bars
   svg.append("g")
+    .attr("class", "chart")
     .selectAll("g")
     // Enter in data = loop group per group
     .data(data)
@@ -269,10 +288,34 @@ function buildChart(data, companies) {
     .attr("y", function(d) { return y(d.percentage); })
     .attr("width", xSubgroup.bandwidth())
     .attr("height", function(d) { return height - y(d.percentage); })
-    .attr("opacity", 0.8)
     .attr("fill", function(d) { return color(d.key); });
 
-  return svg
+  const size = xSubgroup.bandwidth()
+  // Append legend
+  const legend = svg.append("g")
+    .attr("class", "legend")
+    .selectAll("g")
+    .data(subgroups)
+    .enter()
+  legend.append("rect")
+    .attr("x", width + margin.left + margin.right)
+    .attr("y", function(d,i){ return 0 + i*(size+5)}) // 0 is where the first dot appears. 5 is the distance between dots
+    .attr("width", size)
+    .attr("height", size)
+    .style("fill", function(d){ return color(d)})
+  legend.append("text")
+    .attr("class", "legendText")
+    .attr("x", width + margin.left + margin.right + size * 1.2)
+    .attr("y", function(d,i){ return 0 + i*(size+5) + (size/2)}) // 0 is where the first dot appears. 5 is the distance between dots
+    .style("fill", function(d){ return color(d)})
+    .text(function(d){
+      const time = times.filter(o => o.short === d)[0]
+      return `Last ${time.long}`
+    })
+    .attr("text-anchor", "left")
+    .style("alignment-baseline", "middle")
+
+  return svg.node()
 }
 
 async function postData(query) {
@@ -316,4 +359,11 @@ async function postData(query) {
     body: JSON.stringify(data) // body data type must match "Content-Type" header
   });
   return response.json(); // parses JSON response into native JavaScript objects
+}
+
+function createLoading() {
+  const div = document.createElement('div')
+  div.setAttribute('class', 'lds-ring')
+  for (let i = 0; i < 4; i++) div.append(document.createElement('div'))
+  return div
 }
