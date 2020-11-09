@@ -10,8 +10,6 @@ body {
 }
 
 .graph {
-    display: grid;
-    grid-row-gap: 2em;
 }
 
 .legendText {

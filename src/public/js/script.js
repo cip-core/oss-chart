@@ -36,6 +36,7 @@ createMultipleSelectionList().then(function (dropdown) {
 function updateGraphs(companies) {
   const divs = document.querySelectorAll('div.graph')
   for (const div of divs) {
+    div.innerHTML = "" // Clear div
     const loading = createLoading()
     div.append(loading)
     const id = div.getAttribute('id')
@@ -51,22 +52,12 @@ async function updateGraph(div, metrics, companies) {
   const query = `select name, value, period from \"shcom\" where series = '${metrics}' and period in (${periods.map(p => `'${p}'`).join(', ')})`
   // Retrieve data from API
   const data = await postData(query)
-
   // Build Chart
-  const svg = buildChart(data, companies)
+  const svg = buildChart(div, data, companies)
 
   // Replace old chart
   d3.select(div).select('svg').remove()
   d3.select(div).append(() => svg)
-  resizeSVG(svg)
-}
-
-function resizeSVG(svg) {
-  // Get the bounds of the SVG content
-  const bbox = svg.getBBox();
-  // Update the width and height using the size of the contents
-  svg.setAttribute("width", bbox.x + bbox.width + bbox.x);
-  svg.setAttribute("height", bbox.y + bbox.height + bbox.y);
 }
 
 async function createMultipleSelectionList() {
@@ -194,7 +185,7 @@ const tooltip = d3.select("body").append("div")
   .attr("class", "tooltip")
   .style("opacity", 0);
 
-function buildChart(data, companies) {
+function buildChart(parent, data, companies) {
   data = preprocessData(data, companies)
   var columns = data.columns
 
@@ -213,34 +204,29 @@ function buildChart(data, companies) {
   // List of groups = species here = value of the first column called group -> I show them on the X axis
   var groups = d3.map(data, function(d){return(d[columns[0]])}).keys()
 
-  const bandWidth = 10
   // set the dimensions and margins of the graph
-  const margin = {top: 10, right: 0, bottom: 20, left: 30}
-  const width = (bandWidth * subgroups.length) * (data.length * 2 + 1) // width of the data
-  const height = 270
+  const margin = {top: 10, right: 0, bottom: 15, left: 30}
+  const svgWidth = Math.min(25 * subgroups.length * groups.length, parent.offsetWidth)
+  const chartWidth = svgWidth - margin.left - margin.right
+  let svgHeight = 270
+  const chartHeight = svgHeight - margin.top - margin.bottom
 
   // append the svg object to the body of the page
   var svg = d3.create('svg')
   svg
-    .attr("width", width + margin.left + margin.right + 200)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("width", svgWidth)
+    .attr("height", svgHeight)
 
   // Add X axis
   var x = d3.scaleBand()
     .domain(groups)
-    .range([0, width ])
+    .range([0, chartWidth ])
     .padding([1 / 5])
-  svg.append("g")
-    .attr("transform", `translate(${margin.left}, ${height + margin.top})`)
-    .call(d3.axisBottom(x).tickSize(0));
 
   // Add Y axis
   var y = d3.scaleLinear()
     .domain([0, maxPercentage])
-    .range([ height, 0 ]);
-  svg.append("g")
-    .attr("transform", `translate(${margin.left}, ${margin.top})`)
-    .call(d3.axisLeft(y));
+    .range([ chartHeight, 0 ]);
 
   // Another scale for subgroup position?
   var xSubgroup = d3.scaleBand()
@@ -253,10 +239,11 @@ function buildChart(data, companies) {
     .domain(subgroups)
     .range(d3.schemeSet1)
 
+  let lastMax = 0
   // Show the bars
-  svg.append("g")
+  const chart = svg.append("g")
     .attr("class", "chart")
-    .selectAll("g")
+  chart.selectAll("g")
     // Enter in data = loop group per group
     .data(data)
     .enter()
@@ -266,8 +253,8 @@ function buildChart(data, companies) {
     .data(function(d) {
       return subgroups.map(function(key) {
         const subgroupValue = d[key]
-        return { key: key, value: subgroupValue.value, percentage: subgroupValue.percentage };
-      }); $
+        return { key: key, value: subgroupValue.value, percentage: subgroupValue.percentage, isLast: d[columns[0]] === groups[groups.length - 1]};
+      });
     })
     .enter().append("rect")
     .on("mouseover", function(d) {
@@ -287,7 +274,11 @@ function buildChart(data, companies) {
     .attr("x", function(d) { return xSubgroup(d.key); })
     .attr("y", function(d) { return y(d.percentage); })
     .attr("width", xSubgroup.bandwidth())
-    .attr("height", function(d) { return height - y(d.percentage); })
+    .attr("height", function(d) {
+      const height = chartHeight - y(d.percentage)
+      if (d.isLast) lastMax = Math.max(lastMax, height)
+      return height;
+    })
     .attr("fill", function(d) { return color(d.key); });
 
   const size = xSubgroup.bandwidth()
@@ -298,14 +289,14 @@ function buildChart(data, companies) {
     .data(subgroups)
     .enter()
   legend.append("rect")
-    .attr("x", width + margin.left + margin.right)
+    .attr("x", svgWidth - Math.max(x.bandwidth(), 105))
     .attr("y", function(d,i){ return 0 + i*(size+5)}) // 0 is where the first dot appears. 5 is the distance between dots
     .attr("width", size)
     .attr("height", size)
     .style("fill", function(d){ return color(d)})
   legend.append("text")
     .attr("class", "legendText")
-    .attr("x", width + margin.left + margin.right + size * 1.2)
+    .attr("x", svgWidth - Math.max(x.bandwidth(), 105) + size * 1.2)
     .attr("y", function(d,i){ return 0 + i*(size+5) + (size/2)}) // 0 is where the first dot appears. 5 is the distance between dots
     .style("fill", function(d){ return color(d)})
     .text(function(d){
@@ -314,6 +305,21 @@ function buildChart(data, companies) {
     })
     .attr("text-anchor", "left")
     .style("alignment-baseline", "middle")
+
+  const legendHeight = (size + 5) * subgroups.length - 5
+  const sum = lastMax + legendHeight + margin.bottom + 5
+  if (sum > svgHeight) {
+    svg.attr("height", sum)
+    chart.attr('transform', `translate(0, ${sum - svgHeight})`)
+    margin.top += sum - svgHeight
+  }
+
+  svg.append("g")
+    .attr("transform", `translate(${margin.left}, ${chartHeight + margin.top})`)
+    .call(d3.axisBottom(x).tickSize(0));
+  svg.append("g")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`)
+    .call(d3.axisLeft(y));
 
   return svg.node()
 }
