@@ -282,22 +282,24 @@ function buildChart(parent, data, companies) {
     .attr("fill", function(d) { return color(d.key); });
 
   const size = xSubgroup.bandwidth()
+  const spaceBetween = 5
   // Append legend
   const legend = svg.append("g")
     .attr("class", "legend")
+    .attr("transform", `translate(${svgWidth - 55 - spaceBetween - size}, 0)`)
     .selectAll("g")
     .data(subgroups)
     .enter()
   legend.append("rect")
-    .attr("x", svgWidth - Math.max(x.bandwidth(), 105))
-    .attr("y", function(d,i){ return 0 + i*(size+5)}) // 0 is where the first dot appears. 5 is the distance between dots
+    .attr("x", 0)
+    .attr("y", function(d,i){ return 0 + i * (size + spaceBetween)}) // 0 is where the first dot appears. 5 is the distance between dots
     .attr("width", size)
     .attr("height", size)
     .style("fill", function(d){ return color(d)})
   legend.append("text")
     .attr("class", "legendText")
-    .attr("x", svgWidth - Math.max(x.bandwidth(), 105) + size * 1.2)
-    .attr("y", function(d,i){ return 0 + i*(size+5) + (size/2)}) // 0 is where the first dot appears. 5 is the distance between dots
+    .attr("x", size + spaceBetween)
+    .attr("y", function(d,i){ return 0 + i * (size + spaceBetween) + (size / 2)}) // 0 is where the first dot appears. 5 is the distance between dots
     .style("fill", function(d){ return color(d)})
     .text(function(d){
       const time = times.filter(o => o.short === d)[0]
@@ -306,8 +308,8 @@ function buildChart(parent, data, companies) {
     .attr("text-anchor", "left")
     .style("alignment-baseline", "middle")
 
-  const legendHeight = (size + 5) * subgroups.length - 5
-  const sum = lastMax + legendHeight + margin.bottom + 5
+  const legendHeight = (size + spaceBetween) * subgroups.length - spaceBetween
+  const sum = lastMax + legendHeight + margin.bottom + spaceBetween
   if (sum > svgHeight) {
     svg.attr("height", sum)
     chart.attr('transform', `translate(0, ${sum - svgHeight})`)
