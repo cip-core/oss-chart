@@ -204,8 +204,11 @@ function buildChart(parent, data, companies) {
   // List of groups = species here = value of the first column called group -> I show them on the X axis
   var groups = d3.map(data, function(d){return(d[columns[0]])}).keys()
 
+  const yAxisLabelWidth = 10
   // set the dimensions and margins of the graph
   const margin = {top: 10, right: 0, bottom: 15, left: 30}
+  margin.left += yAxisLabelWidth
+
   const svgWidth = Math.min(25 * subgroups.length * groups.length, parent.offsetWidth)
   const chartWidth = svgWidth - margin.left - margin.right
   let svgHeight = 270
@@ -286,7 +289,7 @@ function buildChart(parent, data, companies) {
   // Append legend
   const legend = svg.append("g")
     .attr("class", "legend")
-    .attr("transform", `translate(${svgWidth - 55 - spaceBetween - size}, 0)`)
+    .attr("transform", `translate(${svgWidth + yAxisLabelWidth - 55 - spaceBetween - size}, 0)`)
     .selectAll("g")
     .data(subgroups)
     .enter()
@@ -303,7 +306,7 @@ function buildChart(parent, data, companies) {
     .style("fill", function(d){ return color(d)})
     .text(function(d){
       const time = times.filter(o => o.short === d)[0]
-      return `Last ${time.long}`
+      return time.long[0].toUpperCase() + time.long.slice(1)
     })
     .attr("text-anchor", "left")
     .style("alignment-baseline", "middle")
@@ -322,6 +325,14 @@ function buildChart(parent, data, companies) {
   svg.append("g")
     .attr("transform", `translate(${margin.left}, ${margin.top})`)
     .call(d3.axisLeft(y));
+
+  svg.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", yAxisLabelWidth)
+    .attr("x", 0 - (chartHeight / 2))
+    .attr("font-size", 10)
+    .style("text-anchor", "middle")
+    .text("Percentage");
 
   return svg.node()
 }
