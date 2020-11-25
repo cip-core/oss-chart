@@ -18,7 +18,7 @@ async function init() {
   app.get('/', function(req, res) {
     res.redirect('/index.html')
   })
-  app.use(express.static(__dirname + '/public'))
+  app.use(express.static(__dirname + '/../public'))
   app.use('/', route)
 
   return app
