@@ -1,4 +1,4 @@
-const apiBaseUrl = window.location.origin.indexOf('file://') === 0 ? 'http://localhost:3000' : window.location.origin
+const apiBaseUrl = window.location.href
 
 const url = apiBaseUrl + '/api/tsdb/query'
 const defaultCompanies = ['Google', 'Microsoft', 'IBM']

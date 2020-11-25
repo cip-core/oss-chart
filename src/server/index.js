@@ -11,15 +11,17 @@ app.use(bodyParser.urlencoded({
   extended: true
 }))
 
+const defaultComponent = 'k8s'
+
 async function init() {
   app.use(cors)
   app.use(preprocessRequest)
   app.use(logRequest)
   app.get('/', function(req, res) {
-    res.redirect('/index.html')
+    res.redirect(`/${defaultComponent}`)
   })
   app.use(express.static(__dirname + '/../public'))
-  app.use('/', route)
+  app.use('/component', route)
 
   return app
 }
