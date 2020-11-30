@@ -1,7 +1,8 @@
-const path = require('path')
 const express = require('express')
 const bodyParser = require('body-parser')
+const { Client } = require('pg')
 
+const config = require('./config')
 const route = require('./route')
 
 const app = express()
@@ -14,6 +15,13 @@ app.use(bodyParser.urlencoded({
 const defaultComponent = 'k8s'
 
 async function init() {
+  try {
+    await initDatabase()
+    console.log('Database connected')
+  } catch (e) {
+    console.error('Database connection error')
+    return
+  }
   app.use(cors)
   app.use(preprocessRequest)
   app.use(logRequest)
@@ -24,6 +32,17 @@ async function init() {
   app.use('/component', route)
 
   return app
+}
+
+async function initDatabase() {
+  const client = new Client({
+    user: config.POSTGRESQL_USER,
+    host: config.POSTGRESQL_HOST,
+    database: config.POSTGRESQL_DATABASE,
+    password: config.POSTGRESQL_PASSWORD,
+    port: parseInt(config.POSTGRESQL_PORT),
+  })
+  await client.connect()
 }
 
 async function homeUrl(req, res, next) {
