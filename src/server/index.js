@@ -20,7 +20,7 @@ async function init() {
     console.log('Database connected')
   } catch (e) {
     console.error('Database connection error')
-    return
+    //return
   }
   app.use(cors)
   app.use(preprocessRequest)
