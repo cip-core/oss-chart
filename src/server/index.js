@@ -19,6 +19,7 @@ async function init() {
     await initDatabase()
     console.log('Database connected')
   } catch (e) {
+    console.error(e)
     console.error('Database connection error')
     //return
   }
@@ -35,13 +36,15 @@ async function init() {
 }
 
 async function initDatabase() {
-  const client = new Client({
+  const clientConfig = {
     user: config.POSTGRESQL_USER,
     host: config.POSTGRESQL_HOST,
     database: config.POSTGRESQL_DATABASE,
     password: config.POSTGRESQL_PASSWORD,
     port: parseInt(config.POSTGRESQL_PORT),
-  })
+  }
+  console.log(clientConfig)
+  const client = new Client(clientConfig)
   await client.connect()
 }
 
