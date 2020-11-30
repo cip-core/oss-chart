@@ -41,7 +41,6 @@ async function initDatabase() {
     host: config.POSTGRESQL_HOST,
     database: config.POSTGRESQL_DATABASE,
     password: config.POSTGRESQL_PASSWORD,
-    port: parseInt(config.POSTGRESQL_PORT),
   }
   console.log(clientConfig)
   const client = new Client(clientConfig)
