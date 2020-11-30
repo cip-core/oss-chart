@@ -18,7 +18,7 @@ async function init() {
   app.use(preprocessRequest)
   app.use(logRequest)
   app.get('/', function(req, res) {
-    res.redirect(`/${defaultComponent}`)
+    res.redirect(`/component/${defaultComponent}`)
   })
   app.use(express.static(__dirname + '/../public'))
   app.use('/component', route)
