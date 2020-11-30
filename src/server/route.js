@@ -22,6 +22,7 @@ async function renderPage(req, res, next) {
       const html = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
       const document = HTMLParser.parse(html);
       document.querySelector('#componentName').set_content(c.name);
+      if (c.svg) document.querySelector('#h1Title').appendChild(c.svg);
       document.querySelector('#componentLink').setAttribute('href', c.href);
       return await res.send(document.toString());
     }

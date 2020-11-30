@@ -2,6 +2,12 @@ body {
     font-family: sans-serif;
 }
 
+h1 > svg {
+    height: 1em;
+    vertical-align: top;
+    margin-left: .25em;
+}
+
 #selection {
     display: grid;
     grid-template-columns: max-content max-content;
