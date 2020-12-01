@@ -1,6 +1,15 @@
 const apiBaseUrl = window.location.href
 
-const defaultCompanies = ['Google', 'Microsoft', 'IBM']
+const defaultCompanies = [
+  'Google',
+  'IBM',
+  'Red Hat',
+  'Mirantis',
+  'Docker',
+  'VMware',
+  'Pivotal',
+  'Independent'
+]
 const times = [
   {
     short: 'w',
