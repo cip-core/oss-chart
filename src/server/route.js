@@ -34,7 +34,7 @@ async function renderPage(req, res, next) {
 async function listCompanies(req, res, next) {
   const component = req.params.component
   const companies = await utils.loadCompanies(component)
-  console.log(companies.data)
+  console.log(companies.data.res['A'].tables[0].rows)
   await res.json(companies.data.results['A'].tables[0].rows.slice(1).flat())
 }
 
