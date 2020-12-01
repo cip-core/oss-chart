@@ -2,6 +2,7 @@ const apiBaseUrl = window.location.href
 
 const defaultCompanies = [
   'Google',
+  'Microsoft',
   'IBM',
   'Red Hat',
   'Mirantis',
