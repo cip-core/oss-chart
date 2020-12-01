@@ -1,6 +1,5 @@
 const apiBaseUrl = window.location.href
 
-const url = apiBaseUrl + '/api/tsdb/query'
 const defaultCompanies = ['Google', 'Microsoft', 'IBM']
 const times = [
   {
@@ -48,12 +47,10 @@ function updateGraphs(companies) {
 
 async function updateGraph(div, metrics, companies) {
   const periods = times.map(t => t.short)
-  // SQL query to send
-  const query = `select name, value, period from \"shcom\" where series = '${metrics}' and period in (${periods.map(p => `'${p}'`).join(', ')})`
   // Retrieve data from API
-  const data = await postData(query)
+  const data = await postData(`${apiBaseUrl}/${metrics}`, { periods, companies });
   // Build Chart
-  const svg = buildChart(div, data, companies)
+  const svg = buildChart(div, data)
 
   // Replace old chart
   d3.select(div).select('svg').remove()
@@ -61,9 +58,6 @@ async function updateGraph(div, metrics, companies) {
 }
 
 async function createMultipleSelectionList() {
-  // retrieve companies list
-  const query = "select name from \"shcom\" where series = 'hcomcontributions' and period = 'y10'"
-
   const select = document.createElement('select')
   select.setAttribute('id', 'select')
   select.setAttribute('multiple', '')
@@ -84,7 +78,7 @@ async function createMultipleSelectionList() {
   }
   let multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
-  const companies = await loadCompanies(query)
+  const companies = await loadCompanies()
   for (const company of companies) {
     const option = document.createElement('option')
     option.setAttribute('value', company)
@@ -103,49 +97,14 @@ async function createMultipleSelectionList() {
   return multipleSelection
 }
 
-async function loadCompanies(query) {
-  const data = await postData(query)
-  const companies = data.results['A'].tables[0].rows.slice(1).flat()
+async function loadCompanies() {
+  const companies = await postData(`${apiBaseUrl}/companies`)
   //companies.sort() // Sort alphabetically
 
   return companies
 }
 
-function preprocessData(data, companies) {
-  const table = data.results['A'].tables[0]
-  table.columns = table.columns.map(obj => obj.text)
-
-  const mainColumn = table.columns[0]
-  const dictValues = {}
-  const keys = [mainColumn]
-  const rows = table.rows.map(function(row) {
-    const x = row[0]
-    let obj = dictValues[x]
-    if (!obj) {
-      obj = {}
-      obj[mainColumn] = x
-      dictValues[x] = obj
-    }
-
-    const value = row[1]
-    const name = row[2]
-    keys.indexOf(name) === -1 && keys.push(name)
-    obj[name] = value
-  })
-
-  let out = []
-  for (const key in dictValues) {
-    if (companies.indexOf(key) !== -1) {
-      out.push(dictValues[key])
-    }
-  }
-  out.columns = keys
-
-  return out
-}
-
-function transformPercentage(data) {
-  const subgroups = data.columns.slice(1)
+function transformPercentage(data, subgroups) {
   const sums = {}
   for (const subgroup of subgroups) {
     for (const company of data) {
@@ -185,9 +144,9 @@ const tooltip = d3.select("body").append("div")
   .attr("class", "tooltip")
   .style("opacity", 0);
 
-function buildChart(parent, data, companies) {
-  data = preprocessData(data, companies)
+function buildChart(parent, data) {
   var columns = data.columns
+  data = data.rows
 
   // List of subgroups = header of the csv files = soil condition here
   var subgroups = columns.slice(1)
@@ -198,7 +157,7 @@ function buildChart(parent, data, companies) {
   })
 
   // Transform data to percentage
-  data = transformPercentage(data)
+  data = transformPercentage(data, columns.slice(1))
   const maxPercentage = getUpperLimit(data)
 
   // List of groups = species here = value of the first column called group -> I show them on the X axis
@@ -337,23 +296,7 @@ function buildChart(parent, data, companies) {
   return svg.node()
 }
 
-async function postData(query) {
-  // Data to send via POST request to API
-  const data = {
-    from: "1446545259582",
-    to: new Date().getTime().toString(),
-    queries: [
-      {
-        refId: "A",
-        intervalMs: 86400000,
-        maxDataPoints: 814,
-        datasourceId: 1,
-        rawSql: query,
-        format: "table"
-      }
-    ]
-  }
-
+async function postData(url, data = {}) {
   // Default options are marked with *
   const response = await fetch(url, {
     method: 'POST', // *GET, POST, PUT, DELETE, etc.

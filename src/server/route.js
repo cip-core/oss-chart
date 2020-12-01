@@ -1,7 +1,6 @@
 const path = require('path');
 const fs = require('fs');
 const express = require('express');
-const axios = require('axios');
 const HTMLParser = require('node-html-parser');
 
 const utils = require('./utils');
@@ -10,7 +9,8 @@ const router = express.Router();
 
 //router.get('/*', officialApi); // Not used by API
 router.get('/:component', renderPage);
-router.post('/:component/*', officialApi);
+router.post('/:component/companies', listCompanies);
+router.post('/:component/:metrics', officialApi);
 
 async function renderPage(req, res, next) {
   const component = req.params.component;
@@ -31,20 +31,29 @@ async function renderPage(req, res, next) {
   await res.json({message: `Component "${component}" does not exist`});
 }
 
+async function listCompanies(req, res, next) {
+  const component = req.params.component
+  const companies = await utils.loadCompanies(component)
+  await res.json(companies.data.results['A'].tables[0].rows.slice(1).flat())
+}
+
 async function officialApi(req, res, next) {
   const component = req.params.component;
-  const url = req.params['0'];
+  const metrics = req.params.metrics;
+
+  const { periods, companies } = req.body;
 
   let response = undefined;
   try {
     const components = await utils.loadComponents();
     for (const c of components) {
       if (c.short === component) {
-        response = await axios({
-          method: req.method,
-          url: `${c.href}/${url}`,
-          data: req.body,
-        });
+        response = await utils.loadData(
+          component,
+          metrics,
+          periods,
+          companies,
+        );
         break;
       }
     }

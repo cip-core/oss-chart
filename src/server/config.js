@@ -4,14 +4,14 @@ const configFile = '../../config.json'
 
 let config = {}
 const variables = [
-  'POSTGRESQL_HOST',
-  'POSTGRESQL_PORT',
-  'POSTGRESQL_DATABASE',
-  'POSTGRESQL_USER',
-  'POSTGRESQL_PASSWORD',
 ]
 // Optional variables and their default values
 const optionalVariables = {
+  'POSTGRESQL_HOST': undefined,
+  'POSTGRESQL_PORT': undefined,
+  'POSTGRESQL_DATABASE': undefined,
+  'POSTGRESQL_USER': undefined,
+  'POSTGRESQL_PASSWORD': undefined,
 }
 
 if (fs.existsSync(__dirname + '/' + configFile)) {

@@ -2,7 +2,6 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const { Client } = require('pg')
 
-const config = require('./config')
 const route = require('./route')
 
 const app = express()
@@ -21,7 +20,6 @@ async function init() {
   } catch (e) {
     console.error(e)
     console.error('Database connection error')
-    //return
   }
   app.use(cors)
   app.use(preprocessRequest)
@@ -36,13 +34,14 @@ async function init() {
 }
 
 async function initDatabase() {
+  const config = require('./config')
   const clientConfig = {
     user: config.POSTGRESQL_USER,
     host: config.POSTGRESQL_HOST,
     database: config.POSTGRESQL_DATABASE,
     password: config.POSTGRESQL_PASSWORD,
+    port: parseInt(config.POSTGRESQL_PORT),
   }
-  console.log(clientConfig)
   const client = new Client(clientConfig)
   await client.connect()
 }
