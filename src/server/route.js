@@ -35,9 +35,7 @@ async function listCompanies(req, res, next) {
   const component = req.params.component
   const companies = await utils.loadCompanies(component)
   const data = companies.data.results['A'].tables[0].rows.slice(1)
-  console.log(JSON.stringify(data))
-  console.log(data)
-  await res.json(data.flat())
+  await res.json([].concat(...data))
 }
 
 async function officialApi(req, res, next) {
