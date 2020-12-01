@@ -43,6 +43,7 @@ async function initDatabase() {
     port: parseInt(config.POSTGRESQL_PORT),
   }
   await database.init(clientConfig)
+  await database.createTables()
 }
 
 async function homeUrl(req, res, next) {
