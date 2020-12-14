@@ -30,8 +30,7 @@ async function selectFrom(table, columns, where) {
 async function insertInto(table, columns = [], rows = []) {
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
     'VALUES \n' +
-    `${rows.map(row => `(${row.join(', ')})`).join(',\n')} \n` +
-    'RETURNING *;'
+    `${rows.map(row => `(${row.join(', ')})`).join(',\n')} ;`
   if (client) return await client.query(sql)
 }
 
@@ -39,18 +38,16 @@ async function replaceInto(table, columns = [], rows = []) {
   const valueColumn = columns[columns.length - 1]
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
     'VALUES \n' +
-    `${rows.map(row => `(${row.join(', ')})`).join(',\n')} AS newRow \n` +
+    `${rows.map(row => `(${row.map(v => `"${v}"`).join(', ')})`).join(',\n')} AS newRow \n` +
     'ON DUPLICATE KEY UPDATE \n' +
-    `${valueColumn} = newRow.${valueColumn}` +
-    'RETURNING *;'
+    `${valueColumn} = newRow.${valueColumn} ;`
   if (client) return await client.query(sql)
 }
 
 async function update(table, values = {}, conditions = []) {
   const sql = `UPDATE ${table} \n` +
     `SET ${Object.entries(values).map(entry => `${entry[0]} = ${entry[1]}`).join(',\n')} \n` +
-    `WHERE ${conditions.join(' AND ')} \n` +
-    'RETURNING *;'
+    `WHERE ${conditions.join(' AND ')} ;`
   if (client) return await client.query(sql)
 }
 
