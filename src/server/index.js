@@ -66,8 +66,7 @@ function preprocessRequest(req, res, next) {
 }
 
 function logRequest(req, res, next) {
-    logRequestParams(req)
-    //logResponseBody(req, res)
+    //logRequestParams(req)
 
     next()
 }
