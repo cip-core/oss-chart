@@ -38,10 +38,10 @@ async function replaceInto(table, columns = [], rows = []) {
   const valueColumn = columns[columns.length - 1]
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
     'VALUES \n' +
-    `${rows.map(row => `(${row.map(v =>`"${v.toString().replace(/"/g, '\\"')}"`).join(', ')})`).join(',\n')} AS newRow \n` +
-    'ON DUPLICATE KEY UPDATE \n' +
-    `${valueColumn} = newRow.${valueColumn} ;`
-  console.log(sql)
+    `${rows.map(row => `(${row.map(v =>`"${v.toString().replace(/"/g, '\\"')}"`).join(', ')})`).join(',\n')} \n` +
+    'ON CONFLICT \n' +
+    'DO UPDATE SET \n' +
+    `${valueColumn} = ${table}.${valueColumn} ;`
   if (client) return await client.query(sql)
 }
 
