@@ -30,7 +30,7 @@ function queryToBody(query) {
 async function loadCompanies(component) {
   // retrieve companies list
   const response = await loadData(component, 'hcomcontributions', [ 'y10' ])
-  return response.data.rows.map(company => company.name)
+  return response.data.rows.map(company => company.name).slice(1)
 }
 
 const localCache = {}
