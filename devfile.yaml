@@ -1,0 +1,65 @@
+apiVersion: 1.0.0
+metadata:
+  generateName: grafana-chart-
+projects:
+  - name: grafana-chart
+    source:
+      location: 'https://github.com/cengizmurat/grafana-chart'
+      branch: devfile
+      type: git
+components:
+  - id: che-incubator/typescript/latest
+    memoryLimit: 512Mi
+    type: chePlugin
+  - id: ms-vscode/node-debug2/latest
+    type: chePlugin
+  - mountSources: true
+    endpoints:
+      - name: nodejs
+        port: 3000
+    memoryLimit: 512Mi
+    type: dockerimage
+    alias: nodejs
+    image: 'registry.redhat.io/codeready-workspaces/plugin-java8-rhel8@sha256:bf9c2de38c7f75654d6d9789fb22215f55fef0787ef6fd59b354f95883cf5e95'
+    env:
+      - value: 'https://cdp-nexus-npm.fr.world.socgen/nexus/repository/sgcib-all-cluster-npm-group/'
+        name: NPM_MIRROR
+      - value: 'false'
+        name: NPM_CONFIG_STRICT_SSL
+commands:
+  - name: 1. Download & Run (dev)
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/grafana-chart'
+        type: exec
+        command: npm config set registry $NPM_MIRROR && npm install
+        component: nodejs
+  - name: 2. Download dependencies
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/grafana-chart'
+        type: exec
+        command: npm config set registry $NPM_MIRROR && npm install
+        component: nodejs
+  - name: 3. Run the web app
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/grafana-chart'
+        type: exec
+        command: npm run start
+        component: nodejs
+  - name: Attach remote debugger
+    actions:
+      - referenceContent: |
+          {
+            "version": "0.2.0",
+            "configurations": [
+              {
+                "type": "node",
+                "request": "attach",
+                "name": "Attach to Remote",
+                "address": "localhost",
+                "port": 9229,
+                "localRoot": "${workspaceFolder}",
+                "remoteRoot": "${workspaceFolder}"
+              }
+            ]
+          }
+        type: vscode-launch
