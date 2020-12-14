@@ -34,8 +34,7 @@ async function renderPage(req, res, next) {
 async function listCompanies(req, res, next) {
   const component = req.params.component
   const companies = await utils.loadCompanies(component)
-  const data = companies.data.results['A'].tables[0].rows.slice(1)
-  await res.json([].concat(...data))
+  await res.json(companies)
 }
 
 async function officialApi(req, res, next) {
@@ -59,11 +58,12 @@ async function officialApi(req, res, next) {
       }
     }
   } catch (e) {
+    console.error(e)
     response = e.response;
+    res.statusCode = response.status;
+    res.statusText = response.statusText;
   }
 
-  res.statusCode = response.status;
-  res.statusText = response.statusText;
   await res.json(response.data);
 }
 

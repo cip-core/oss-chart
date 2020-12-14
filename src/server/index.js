@@ -1,8 +1,8 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const { Client } = require('pg')
 
 const route = require('./route')
+const database = require('./database')
 
 const app = express()
 
@@ -42,8 +42,8 @@ async function initDatabase() {
     password: config.POSTGRESQL_PASSWORD,
     port: parseInt(config.POSTGRESQL_PORT),
   }
-  const client = new Client(clientConfig)
-  await client.connect()
+  await database.init(clientConfig)
+  await database.createTables()
 }
 
 async function homeUrl(req, res, next) {
@@ -66,8 +66,7 @@ function preprocessRequest(req, res, next) {
 }
 
 function logRequest(req, res, next) {
-    logRequestParams(req)
-    //logResponseBody(req, res)
+    //logRequestParams(req)
 
     next()
 }
