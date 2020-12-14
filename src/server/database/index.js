@@ -36,9 +36,12 @@ async function insertInto(table, columns = [], rows = []) {
 }
 
 async function replaceInto(table, columns = [], rows = []) {
-  const sql = `REPLACE INTO ${table} (${columns.join(', ')}) \n` +
+  const valueColumn = columns[columns.length - 1]
+  const sql = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
     'VALUES \n' +
-    `${rows.map(row => `(${row.join(', ')})`).join(',\n')} \n` +
+    `${rows.map(row => `(${row.join(', ')})`).join(',\n')} AS newRow \n` +
+    'ON DUPLICATE KEY UPDATE \n' +
+    `${valueColumn} = newRow.${valueColumn}` +
     'RETURNING *;'
   if (client) return await client.query(sql)
 }
