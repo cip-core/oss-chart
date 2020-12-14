@@ -41,6 +41,7 @@ async function replaceInto(table, columns = [], rows = []) {
     `${rows.map(row => `(${row.map(v => `"${v}"`).join(', ')})`).join(',\n')} AS newRow \n` +
     'ON DUPLICATE KEY UPDATE \n' +
     `${valueColumn} = newRow.${valueColumn} ;`
+  console.log(sql)
   if (client) return await client.query(sql)
 }
 
