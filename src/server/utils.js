@@ -159,7 +159,7 @@ function saveToLocalCache(component, metrics, data) {
 }
 
 async function saveToDatabase(data) {
-  return await database.replaceInto(
+  return await database.upsert(
     'components_cache',
     [
       'component',

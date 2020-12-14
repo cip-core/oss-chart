@@ -34,14 +34,18 @@ async function insertInto(table, columns = [], rows = []) {
   if (client) return await client.query(sql)
 }
 
-async function replaceInto(table, columns = [], rows = []) {
+async function upsert(table, columns = [], rows = []) {
+  const idColumn = 'id'
+  columns.unshift(idColumn)
+  rows.map(row => row.unshift(row.join('-')))
+
   const valueColumn = columns[columns.length - 1]
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
     'VALUES \n' +
-    `${rows.map(row => `(${row.map(v =>`"${v.toString().replace(/"/g, '\\"')}"`).join(', ')})`).join(',\n')} \n` +
-    'ON CONFLICT \n' +
+    `${rows.map(row => `(${row.map(v =>`'${v.toString().replace(/'/g, '\\')}'`).join(', ')})`).join(',\n')} \n` +
+    `ON CONFLICT (${idColumn}) \n` +
     'DO UPDATE SET \n' +
-    `${valueColumn} = ${table}.${valueColumn} ;`
+    `${valueColumn} = excluded.${valueColumn} ;`
   if (client) return await client.query(sql)
 }
 
@@ -57,6 +61,6 @@ module.exports = {
   createTables,
   selectFrom,
   insertInto,
-  replaceInto,
+  upsert,
   update,
 }
