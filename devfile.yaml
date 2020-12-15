@@ -5,7 +5,7 @@ projects:
   - name: grafana-chart
     source:
       location: 'https://github.com/cengizmurat/grafana-chart'
-      branch: develop
+      branch: master
       type: git
 components:
   - id: che-incubator/typescript/latest
