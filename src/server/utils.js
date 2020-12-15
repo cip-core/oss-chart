@@ -61,7 +61,7 @@ async function loadData(component, metrics, periods, companies) {
     response.data = await loadFromDevstats(component, metrics, periods)
     const rowsToAdd = saveToLocalCache(component, metrics, response.data)
     if (rowsToAdd.length > 0) {
-      await saveToDatabase(rowsToAdd)
+      await saveComponentsCacheToDatabase(rowsToAdd)
     }
   } else {
     response.data = cachedData
@@ -158,15 +158,59 @@ function saveToLocalCache(component, metrics, data) {
   return rowsToAdd
 }
 
-async function saveToDatabase(data) {
+async function saveComponentsCacheToDatabase(data) {
+  data.map(row => row.unshift(row.join('-'))) // generate id for each row
   return await database.upsert(
     'components_cache',
     [
+      'id',
       'component',
       'metrics',
       'company',
       'period',
       'value',
+    ],
+    data,
+  )
+}
+
+async function saveComponentsToDatabase(data) {
+  return await database.upsert(
+    'components',
+    [
+      'id',
+    ],
+    data,
+  )
+}
+
+async function saveCompaniesToDatabase(data) {
+  return await database.upsert(
+    'companies',
+    [
+      'id',
+    ],
+    data,
+  )
+}
+
+async function saveCompanyStacksToDatabase(data) {
+  return await database.upsert(
+    'company_stacks',
+    [
+      'parent',
+      'child',
+    ],
+    data,
+  )
+}
+
+async function saveComponentStacksToDatabase(data) {
+  return await database.upsert(
+    'component_stacks',
+    [
+      'parent',
+      'child',
     ],
     data,
   )
