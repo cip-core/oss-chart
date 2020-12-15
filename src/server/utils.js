@@ -27,15 +27,27 @@ function queryToBody(query) {
   }
 }
 
+const componentsLocalCache = {}
+const companiesLocalCache = {}
+const stacksLocalCache = {}
+
 async function loadCompanies(component) {
   // retrieve companies list
   const response = await loadData(component, 'hcomcontributions', [ 'y10' ])
   const companies = response.data.rows.map(company => company.name).slice(1)
-  await saveCompaniesToDatabase(companies.map(company => [ company ]))
+
+  const companiesToAdd = []
+  for (const company of companies) {
+    const cachedCompany = companiesLocalCache[company]
+    if (!cachedCompany) {
+      companiesLocalCache[company] = {}
+      companiesToAdd.push(company)
+    }
+  }
+  await saveCompaniesToDatabase(companiesToAdd.map(company => [ company ]))
+
   return companies
 }
-
-const localCache = {}
 
 function shouldUpdateCache(cachedData, companies) {
   // no cache
@@ -77,40 +89,43 @@ async function loadData(component, metrics, periods, companies) {
 }
 
 function loadFromCache(component, metrics, periods) {
-  const componentCache = localCache[component]
+  const componentCache = componentsLocalCache[component]
   if (componentCache) {
-    const metricsCache = componentCache[metrics]
+    const metricsCache = componentCache.metrics
     if (metricsCache) {
-      const missingCompanies = []
-      const rows = []
-      for (const entry of Object.entries(metricsCache)) {
-        let missing = false
-        const row = {}
-        const company = entry[0]
-        const values = entry[1]
-        row.name = company
-        for (const p of periods) {
-          const value = values[p]
-          if (value !== undefined) {
-            row[p] = value
-          } else {
-            missingCompanies.push(company)
-            missing = true
-            break
+      const metricCache = metricsCache[metrics]
+      if (metricCache) {
+        const missingCompanies = []
+        const rows = []
+        for (const entry of Object.entries(metricCache)) {
+          let missing = false
+          const row = {}
+          const company = entry[0]
+          const values = entry[1]
+          row.name = company
+          for (const p of periods) {
+            const value = values[p]
+            if (value !== undefined) {
+              row[p] = value
+            } else {
+              missingCompanies.push(company)
+              missing = true
+              break
+            }
           }
+          if (missing) continue
+
+          rows.push(row)
         }
-        if (missing) continue
 
-        rows.push(row)
+        const data = {}
+
+        data.columns = [ 'name' ].concat(periods)
+        data.rows = rows
+        data.missing = missingCompanies
+
+        return data
       }
-
-      const data = {}
-
-      data.columns = [ 'name' ].concat(periods)
-      data.rows = rows
-      data.missing = missingCompanies
-
-      return data
     }
   }
 }
@@ -127,15 +142,22 @@ async function loadFromDevstats(component, metrics, periods) {
 }
 
 function saveToLocalCache(component, metrics, data) {
-  let componentCache = localCache[component]
+  let componentCache = componentsLocalCache[component]
   if (!componentCache) {
     componentCache = {}
-    localCache[component] = componentCache
+    componentsLocalCache[component] = componentCache
   }
-  let metricsCache = componentCache[metrics]
+
+  let metricsCache = componentCache.metrics
   if (!metricsCache) {
     metricsCache = {}
-    componentCache[metrics] = metricsCache
+    componentCache.metrics = metricsCache
+  }
+
+  let metricCache = metricsCache[metrics]
+  if (!metricCache) {
+    metricCache = {}
+    metricsCache[metrics] = metricCache
   }
 
   const mainColumn = data.columns[0]
@@ -143,10 +165,10 @@ function saveToLocalCache(component, metrics, data) {
   const rowsToAdd = []
   for (const row of data.rows) {
     const company = row[mainColumn]
-    let companyCache = metricsCache[company]
+    let companyCache = metricCache[company]
     if (!companyCache) {
       companyCache = {}
-      metricsCache[company] = companyCache
+      metricCache[company] = companyCache
     }
 
     const rowToAdd = [component, metrics, company]
