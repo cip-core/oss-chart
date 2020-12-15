@@ -159,7 +159,9 @@ function saveToLocalCache(component, metrics, data) {
 }
 
 async function saveComponentsCacheToDatabase(data) {
-  data.map(row => row.unshift(row.join('-'))) // generate id for each row
+  // generate id for each row based on all columns (except last) concatenation
+  data.map(row => row.unshift(row.slice(0, -1).join('-')))
+
   return await database.upsert(
     'components_cache',
     [
@@ -178,7 +180,7 @@ async function saveComponentsToDatabase(data) {
   return await database.upsert(
     'components',
     [
-      'id',
+      'name',
     ],
     data,
   )
@@ -188,16 +190,20 @@ async function saveCompaniesToDatabase(data) {
   return await database.upsert(
     'companies',
     [
-      'id',
+      'name',
     ],
     data,
   )
 }
 
 async function saveCompanyStacksToDatabase(data) {
+  // generate id for each row based on parent-child concatenation
+  data.map(row => row.unshift(row.join('-')))
+
   return await database.upsert(
     'company_stacks',
     [
+      'id',
       'parent',
       'child',
     ],
@@ -206,9 +212,13 @@ async function saveCompanyStacksToDatabase(data) {
 }
 
 async function saveComponentStacksToDatabase(data) {
+  // generate id for each row based on parent-child concatenation
+  data.map(row => row.unshift(row.join('-')))
+
   return await database.upsert(
     'component_stacks',
     [
+      'id',
       'parent',
       'child',
     ],
