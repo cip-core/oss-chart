@@ -30,7 +30,9 @@ function queryToBody(query) {
 async function loadCompanies(component) {
   // retrieve companies list
   const response = await loadData(component, 'hcomcontributions', [ 'y10' ])
-  return response.data.rows.map(company => company.name).slice(1)
+  const companies = response.data.rows.map(company => company.name).slice(1)
+  await saveCompaniesToDatabase(companies.map(company => [ company ]))
+  return companies
 }
 
 const localCache = {}
@@ -180,7 +182,10 @@ async function saveComponentsToDatabase(data) {
   return await database.upsert(
     'components',
     [
+      'short',
       'name',
+      'href',
+      'svg',
     ],
     data,
   )
@@ -309,6 +314,12 @@ async function updateComponents() {
   }
 
   componentsCache = transformComponents(components);
+  await saveComponentsToDatabase(componentsCache.map(component => [
+    component.short,
+    component.name,
+    component.href,
+    component.svg,
+  ]));
   return componentsCache;
 }
 

@@ -14,7 +14,10 @@ CREATE TABLE IF NOT EXISTS components_cache (
 );
 
 CREATE TABLE IF NOT EXISTS components (
-   name varchar unique
+   short varchar unique,
+   name varchar,
+   href varchar,
+   svg varchar
 );
 
 CREATE TABLE IF NOT EXISTS companies (
