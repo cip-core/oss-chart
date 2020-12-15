@@ -167,7 +167,16 @@ function buildChart(parent, data) {
   })
 
   // Transform data to percentage
-  data = transformPercentage(data, columns.slice(1))
+  data = transformPercentage(data, subgroups)
+  data.sort(function(a, b) {
+    for (const subgroup of subgroups) {
+      const aValue = a[subgroup].percentage
+      const bValue = b[subgroup].percentage
+      if (aValue === bValue) continue
+      return aValue < bValue ? 1 : -1
+    }
+    return 0
+  })
   const maxPercentage = getUpperLimit(data)
 
   // List of groups = species here = value of the first column called group -> I show them on the X axis
