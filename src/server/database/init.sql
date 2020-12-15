@@ -14,11 +14,11 @@ CREATE TABLE IF NOT EXISTS components_cache (
 );
 
 CREATE TABLE IF NOT EXISTS components (
-   id varchar unique
+   name varchar unique
 );
 
 CREATE TABLE IF NOT EXISTS companies (
-   id varchar unique
+   name varchar unique
 );
 
 CREATE TABLE IF NOT EXISTS component_stacks (
