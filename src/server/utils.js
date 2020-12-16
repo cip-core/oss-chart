@@ -2,11 +2,15 @@ const axios = require('axios');
 const HTMLParser = require('node-html-parser');
 
 const database = require('./database');
+const config = require('./config');
 
 let componentsCache;
 
 const hostname = 'devstats.cncf.io';
 const baseUrl = `https://${hostname}/`;
+
+const cacheTime = parseInt(config.CACHE_TIME) // in minutes
+console.log(`Cache time : ${cacheTime} minute(s)`)
 
 setInterval(updateComponents, 5 * 60 * 1000);
 
@@ -60,6 +64,10 @@ function shouldUpdateCache(cachedData, periods, companies) {
     for (const period of periods) {
       const periodCache = cachedData[period]
       if (!periodCache) {
+        return true
+      }
+
+      if (new Date() - periodCache.updatedAt > cacheTime * 60 * 1000) {
         return true
       }
 
