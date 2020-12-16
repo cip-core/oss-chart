@@ -12,6 +12,7 @@ const optionalVariables = {
   'POSTGRESQL_DATABASE': undefined,
   'POSTGRESQL_USER': undefined,
   'POSTGRESQL_PASSWORD': undefined,
+  'CACHE_TIME': 30,
 }
 
 if (fs.existsSync(__dirname + '/' + configFile)) {

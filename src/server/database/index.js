@@ -35,10 +35,7 @@ async function insertInto(table, columns = [], rows = []) {
 }
 
 async function upsert(table, columns = [], rows = []) {
-  const idColumn = 'id'
-  columns.unshift(idColumn)
-  rows.map(row => row.unshift(row.join('-')))
-
+  const idColumn = columns[0]
   const valueColumn = columns[columns.length - 1]
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
     'VALUES \n' +

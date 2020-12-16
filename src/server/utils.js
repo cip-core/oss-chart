@@ -2,11 +2,15 @@ const axios = require('axios');
 const HTMLParser = require('node-html-parser');
 
 const database = require('./database');
+const config = require('./config');
 
 let componentsCache;
 
 const hostname = 'devstats.cncf.io';
 const baseUrl = `https://${hostname}/`;
+
+const cacheTime = parseInt(config.CACHE_TIME) // in minutes
+console.log(`Cache time : ${cacheTime} minute(s)`)
 
 setInterval(updateComponents, 5 * 60 * 1000);
 
@@ -27,26 +31,43 @@ function queryToBody(query) {
   }
 }
 
+const componentsLocalCache = {}
+const companiesLocalCache = {}
+const stacksLocalCache = {}
+
 async function loadCompanies(component) {
   // retrieve companies list
   const response = await loadData(component, 'hcomcontributions', [ 'y10' ])
-  return response.data.rows.map(company => company.name).slice(1)
+  const companies = response.data.rows.map(company => company.name).slice(1)
+
+  const companiesToAdd = []
+  for (const company of companies) {
+    const cachedCompany = companiesLocalCache[company]
+    if (!cachedCompany) {
+      companiesLocalCache[company] = {}
+      companiesToAdd.push(company)
+    }
+  }
+  await saveCompaniesToDatabase(companiesToAdd.map(company => [ company ]))
+
+  return companies
 }
 
-const localCache = {}
-
-function shouldUpdateCache(cachedData, companies) {
+function shouldUpdateCache(cachedData, periods, companies) {
   // no cache
   if (!cachedData) {
     return true
   }
 
-  // missing company info in cache
-  if (companies) {
-    for (const company of companies) {
-      if (cachedData.missing.indexOf(company) !== -1) {
-        return true
-      }
+  for (const period of periods) {
+    const periodCache = cachedData[period]
+    if (!periodCache) {
+      // no cache
+      return true
+    }
+    if (new Date() - periodCache.updatedAt > cacheTime * 60 * 1000) {
+      // cache expired
+      return true
     }
   }
 
@@ -54,61 +75,60 @@ function shouldUpdateCache(cachedData, companies) {
 }
 
 async function loadData(component, metrics, periods, companies) {
-  const response = {}
+  let cachedData = loadFromCache(component, metrics, periods)
 
-  const cachedData = loadFromCache(component, metrics, periods)
-  if (shouldUpdateCache(cachedData, companies)) {
-    response.data = await loadFromDevstats(component, metrics, periods)
-    const rowsToAdd = saveToLocalCache(component, metrics, response.data)
-    if (rowsToAdd.length > 0) {
-      await saveToDatabase(rowsToAdd)
+  if (shouldUpdateCache(cachedData, periods, companies)) {
+    const data = await loadFromDevstats(component, metrics, periods)
+    if (periods.length + 1 > data.columns.length) {
+      data.columns = [data.columns[0]].concat(periods)
     }
-  } else {
-    response.data = cachedData
+    const rowsToAdd = saveToLocalCache(component, metrics, data)
+    if (rowsToAdd.length > 0) {
+      await saveComponentsCacheToDatabase(rowsToAdd)
+    }
+
+    cachedData = loadFromCache(component, metrics, periods)
   }
-  //response.data.sort() // Sort alphabetically
+
+  const rows = {}
+  for (const [period, values] of Object.entries(cachedData)) {
+    for (const [company, value] of Object.entries(values)) {
+      if (company !== 'updatedAt') {
+        let companyValue = rows[company]
+        if (!companyValue) {
+          companyValue = {}
+          companyValue.updatedAt = values.updatedAt
+          companyValue.name = company
+          rows[company] = companyValue
+        }
+        companyValue[period] = value
+      }
+    }
+  }
+
+  const data = {}
+  data.rows = Object.values(rows)
+  data.columns = [ 'name' ].concat(periods)
 
   if (companies) {
-    response.data.rows = response.data.rows.filter(company => companies.indexOf(company.name) !== -1)
+    data.rows = data.rows.filter(company => companies.indexOf(company.name) !== -1)
   }
+
+  const response = {}
+  response.data = data
+
   return response
 }
 
-function loadFromCache(component, metrics, periods) {
-  const componentCache = localCache[component]
+function loadFromCache(component, metrics) {
+  const componentCache = componentsLocalCache[component]
   if (componentCache) {
-    const metricsCache = componentCache[metrics]
+    const metricsCache = componentCache.metrics
     if (metricsCache) {
-      const missingCompanies = []
-      const rows = []
-      for (const entry of Object.entries(metricsCache)) {
-        let missing = false
-        const row = {}
-        const company = entry[0]
-        const values = entry[1]
-        row.name = company
-        for (const p of periods) {
-          const value = values[p]
-          if (value !== undefined) {
-            row[p] = value
-          } else {
-            missingCompanies.push(company)
-            missing = true
-            break
-          }
-        }
-        if (missing) continue
-
-        rows.push(row)
+      const metricCache = metricsCache[metrics]
+      if (metricCache) {
+        return metricCache
       }
-
-      const data = {}
-
-      data.columns = [ 'name' ].concat(periods)
-      data.rows = rows
-      data.missing = missingCompanies
-
-      return data
     }
   }
 }
@@ -125,43 +145,61 @@ async function loadFromDevstats(component, metrics, periods) {
 }
 
 function saveToLocalCache(component, metrics, data) {
-  let componentCache = localCache[component]
+  let componentCache = componentsLocalCache[component]
   if (!componentCache) {
     componentCache = {}
-    localCache[component] = componentCache
-  }
-  let metricsCache = componentCache[metrics]
-  if (!metricsCache) {
-    metricsCache = {}
-    componentCache[metrics] = metricsCache
+    componentsLocalCache[component] = componentCache
   }
 
+  let metricsCache = componentCache.metrics
+  if (!metricsCache) {
+    metricsCache = {}
+    componentCache.metrics = metricsCache
+  }
+
+  let metricCache = metricsCache[metrics]
+  if (!metricCache) {
+    metricCache = {}
+    metricsCache[metrics] = metricCache
+  }
+
+  const now = new Date()
   const mainColumn = data.columns[0]
   const columns = data.columns.slice(1)
   const rowsToAdd = []
-  for (const row of data.rows) {
-    const company = row[mainColumn]
-    let companyCache = metricsCache[company]
-    if (!companyCache) {
-      companyCache = {}
-      metricsCache[company] = companyCache
+  for (const period of columns) {
+    let periodCache = metricCache[period]
+    if (!periodCache) {
+      periodCache = {}
+      metricCache[period] = periodCache
     }
+    periodCache.updatedAt = now
 
-    const rowToAdd = [component, metrics, company]
-    for (const period of columns) {
+    for (const row of data.rows) {
+      const company = row[mainColumn]
       const value = row[period] || 0
-      rowsToAdd.push(rowToAdd.concat([period, value]))
-      companyCache[period] = value
+      periodCache[company] = value
+      rowsToAdd.push([
+        component,
+        metrics,
+        company,
+        period,
+        value,
+      ])
     }
   }
 
   return rowsToAdd
 }
 
-async function saveToDatabase(data) {
+async function saveComponentsCacheToDatabase(data) {
+  // generate id for each row based on all columns (except last) concatenation
+  data.map(row => row.unshift(row.slice(0, -1).join('-')))
+
   return await database.upsert(
     'components_cache',
     [
+      'id',
       'component',
       'metrics',
       'company',
@@ -172,11 +210,64 @@ async function saveToDatabase(data) {
   )
 }
 
+async function saveComponentsToDatabase(data) {
+  return await database.upsert(
+    'components',
+    [
+      'short',
+      'name',
+      'href',
+      'svg',
+    ],
+    data,
+  )
+}
+
+async function saveCompaniesToDatabase(data) {
+  return await database.upsert(
+    'companies',
+    [
+      'name',
+    ],
+    data,
+  )
+}
+
+async function saveCompanyStacksToDatabase(data) {
+  // generate id for each row based on parent-child concatenation
+  data.map(row => row.unshift(row.join('-')))
+
+  return await database.upsert(
+    'company_stacks',
+    [
+      'id',
+      'parent',
+      'child',
+    ],
+    data,
+  )
+}
+
+async function saveComponentStacksToDatabase(data) {
+  // generate id for each row based on parent-child concatenation
+  data.map(row => row.unshift(row.join('-')))
+
+  return await database.upsert(
+    'component_stacks',
+    [
+      'id',
+      'parent',
+      'child',
+    ],
+    data,
+  )
+}
+
 async function fetchData(component, query) {
   const body = queryToBody(query)
 
   const url = `https://${component}.${hostname}/api/tsdb/query`
-  console.log(`${url} : ${query}`)
+  console.log(`[${new Date().toISOString()}] ${url} : ${query}`)
   return await axios.post(url, body)
 }
 
@@ -255,6 +346,12 @@ async function updateComponents() {
   }
 
   componentsCache = transformComponents(components);
+  await saveComponentsToDatabase(componentsCache.map(component => [
+    component.short,
+    component.name,
+    component.href,
+    component.svg,
+  ]));
   return componentsCache;
 }
 
