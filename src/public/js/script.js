@@ -249,7 +249,7 @@ function buildChart(parent, data) {
         .duration(200)
         .style("opacity", .9);
       const time = times.filter(o => o.short === d.key)[0]
-      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br>Updated ${dateInterval(new Date(d.updatedAt), new Date())}`)
+      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br><i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i>`)
         .style("left", (d3.event.pageX) + "px")
         .style("top", (d3.event.pageY - 28) + "px");
     })
