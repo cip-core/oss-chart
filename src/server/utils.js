@@ -84,43 +84,45 @@ function shouldUpdateCache(cachedData, periods, companies) {
 }
 
 async function loadData(component, metrics, periods, companies) {
-  const response = {}
+  let cachedData = loadFromCache(component, metrics, periods)
 
-  const cachedData = loadFromCache(component, metrics, periods)
   if (shouldUpdateCache(cachedData, periods, companies)) {
-    response.data = await loadFromDevstats(component, metrics, periods)
-    const rowsToAdd = saveToLocalCache(component, metrics, response.data)
+    const data = await loadFromDevstats(component, metrics, periods)
+    const rowsToAdd = saveToLocalCache(component, metrics, data)
     if (rowsToAdd.length > 0) {
       await saveComponentsCacheToDatabase(rowsToAdd)
     }
-  } else {
-    const data = {}
 
-    const rows = {}
-    for (const [period, values] of Object.entries(cachedData)) {
-      for (const [company, value] of Object.entries(values)) {
-        if (company !== 'updatedAt') {
-          let companyValue = rows[company]
-          if (!companyValue) {
-            companyValue = {}
-            companyValue.updatedAt = values.updatedAt
-            companyValue.name = company
-            rows[company] = companyValue
-          }
-          companyValue[period] = value
+    cachedData = loadFromCache(component, metrics, periods)
+  }
+
+  const rows = {}
+  for (const [period, values] of Object.entries(cachedData)) {
+    for (const [company, value] of Object.entries(values)) {
+      if (company !== 'updatedAt') {
+        let companyValue = rows[company]
+        if (!companyValue) {
+          companyValue = {}
+          companyValue.updatedAt = values.updatedAt
+          companyValue.name = company
+          rows[company] = companyValue
         }
+        companyValue[period] = value
       }
     }
-
-    data.rows = Object.values(rows)
-    data.columns = [ 'name' ].concat(periods)
-
-    response.data = data
   }
+
+  const data = {}
+  data.rows = Object.values(rows)
+  data.columns = [ 'name' ].concat(periods)
 
   if (companies) {
-    response.data.rows = response.data.rows.filter(company => companies.indexOf(company.name) !== -1)
+    data.rows = data.rows.filter(company => companies.indexOf(company.name) !== -1)
   }
+
+  const response = {}
+  response.data = data
+
   return response
 }
 
