@@ -271,7 +271,7 @@ async function fetchData(component, query) {
   const body = queryToBody(query)
 
   const url = `https://${component}.${hostname}/api/tsdb/query`
-  console.log(`${url} : ${query}`)
+  console.log(`[${new Date().toISOString()}] ${url} : ${query}`)
   return await axios.post(url, body)
 }
 
