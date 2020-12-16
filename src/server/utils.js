@@ -67,8 +67,8 @@ function shouldUpdateCache(cachedData, periods, companies) {
         return true
       }
 
-      if (new Date() - periodCache.updatedAt > cacheTime * 60 * 1000) {
-        return true
+      if (new Date() - periodCache.updatedAt < cacheTime * 60 * 1000) {
+        return false
       }
 
       for (const company of companies) {
