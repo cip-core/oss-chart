@@ -234,7 +234,13 @@ function buildChart(parent, data) {
     .data(function(d) {
       return subgroups.map(function(key) {
         const subgroupValue = d[key]
-        return { key: key, value: subgroupValue.value, percentage: subgroupValue.percentage, isLast: d[columns[0]] === groups[groups.length - 1]};
+        return {
+          key: key,
+          value: subgroupValue.value,
+          percentage: subgroupValue.percentage,
+          updatedAt: d.updatedAt,
+          isLast: d[columns[0]] === groups[groups.length - 1],
+        };
       });
     })
     .enter().append("rect")
@@ -243,7 +249,7 @@ function buildChart(parent, data) {
         .duration(200)
         .style("opacity", .9);
       const time = times.filter(o => o.short === d.key)[0]
-      tooltip.html(`Last ${time.long} : ${d.value}<br>(${d.percentage}%)`)
+      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br>Updated ${dateInterval(new Date(d.updatedAt), new Date())}`)
         .style("left", (d3.event.pageX) + "px")
         .style("top", (d3.event.pageY - 28) + "px");
     })
@@ -313,6 +319,39 @@ function buildChart(parent, data) {
     .text("Percentage");
 
   return svg.node()
+}
+
+function dateInterval(dateFrom, dateTo) {
+  const diff = new Date(Math.abs(dateTo - dateFrom));
+  const years = diff.getUTCFullYear() - 1970;
+  const months = diff.getUTCMonth();
+  const days = diff.getUTCDate() - 1;
+  const weeks = Math.floor(days / 7);
+
+  const rules = [
+    { interval: 'year', value: years },
+    { interval: 'month', value: months % 12 },
+    { interval: 'week', value: weeks % 4 },
+    { interval: 'day', value: days % 7 },
+    { interval: 'hour', value: diff.getUTCHours() },
+    { interval: 'minute', value: diff.getUTCMinutes() },
+  ];
+  let firstEncountered = false;
+  let outputString = '';
+  for (const rule of rules) {
+    if (!firstEncountered) {
+      if (rule.value > 0) {
+        outputString += `${rule.value} ${rule.interval}${rule.value > 1 ? 's' : ''}\n`;
+        firstEncountered = true;
+      }
+    } else {
+      if (rule.value > 0) {
+        outputString += `${rule.value} ${rule.interval}${rule.value > 1 ? 's' : ''}\n`;
+      }
+      break;
+    }
+  }
+  return (outputString || 'few seconds ') + 'ago';
 }
 
 async function postData(url, data = {}) {
