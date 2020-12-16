@@ -59,24 +59,15 @@ function shouldUpdateCache(cachedData, periods, companies) {
     return true
   }
 
-  // missing company info in cache
-  if (companies) {
-    for (const period of periods) {
-      const periodCache = cachedData[period]
-      if (!periodCache) {
-        return true
-      }
-
-      if (new Date() - periodCache.updatedAt < cacheTime * 60 * 1000) {
-        return false
-      }
-
-      for (const company of companies) {
-        const companyValue = periodCache[company]
-        if (companyValue === undefined) {
-          return true
-        }
-      }
+  for (const period of periods) {
+    const periodCache = cachedData[period]
+    if (!periodCache) {
+      // no cache
+      return true
+    }
+    if (new Date() - periodCache.updatedAt > cacheTime * 60 * 1000) {
+      // cache expired
+      return true
     }
   }
 
@@ -88,6 +79,9 @@ async function loadData(component, metrics, periods, companies) {
 
   if (shouldUpdateCache(cachedData, periods, companies)) {
     const data = await loadFromDevstats(component, metrics, periods)
+    if (periods.length + 1 > data.columns.length) {
+      data.columns = [data.columns[0]].concat(periods)
+    }
     const rowsToAdd = saveToLocalCache(component, metrics, data)
     if (rowsToAdd.length > 0) {
       await saveComponentsCacheToDatabase(rowsToAdd)
