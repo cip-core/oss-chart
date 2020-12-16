@@ -49,7 +49,7 @@ async function loadCompanies(component) {
   return companies
 }
 
-function shouldUpdateCache(cachedData, companies) {
+function shouldUpdateCache(cachedData, periods, companies) {
   // no cache
   if (!cachedData) {
     return true
@@ -57,9 +57,17 @@ function shouldUpdateCache(cachedData, companies) {
 
   // missing company info in cache
   if (companies) {
-    for (const company of companies) {
-      if (cachedData.missing.indexOf(company) !== -1) {
+    for (const period of periods) {
+      const periodCache = cachedData[period]
+      if (!periodCache) {
         return true
+      }
+
+      for (const company of companies) {
+        const companyValue = periodCache[company]
+        if (companyValue === undefined) {
+          return true
+        }
       }
     }
   }
@@ -71,16 +79,36 @@ async function loadData(component, metrics, periods, companies) {
   const response = {}
 
   const cachedData = loadFromCache(component, metrics, periods)
-  if (shouldUpdateCache(cachedData, companies)) {
+  if (shouldUpdateCache(cachedData, periods, companies)) {
     response.data = await loadFromDevstats(component, metrics, periods)
     const rowsToAdd = saveToLocalCache(component, metrics, response.data)
     if (rowsToAdd.length > 0) {
       await saveComponentsCacheToDatabase(rowsToAdd)
     }
   } else {
-    response.data = cachedData
+    const data = {}
+
+    const rows = {}
+    for (const [period, values] of Object.entries(cachedData)) {
+      for (const [company, value] of Object.entries(values)) {
+        if (company !== 'updatedAt') {
+          let companyValue = rows[company]
+          if (!companyValue) {
+            companyValue = {}
+            companyValue.updatedAt = values.updatedAt
+            companyValue.name = company
+            rows[company] = companyValue
+          }
+          companyValue[period] = value
+        }
+      }
+    }
+
+    data.rows = Object.values(rows)
+    data.columns = [ 'name' ].concat(periods)
+
+    response.data = data
   }
-  //response.data.sort() // Sort alphabetically
 
   if (companies) {
     response.data.rows = response.data.rows.filter(company => companies.indexOf(company.name) !== -1)
@@ -88,43 +116,14 @@ async function loadData(component, metrics, periods, companies) {
   return response
 }
 
-function loadFromCache(component, metrics, periods) {
+function loadFromCache(component, metrics) {
   const componentCache = componentsLocalCache[component]
   if (componentCache) {
     const metricsCache = componentCache.metrics
     if (metricsCache) {
       const metricCache = metricsCache[metrics]
       if (metricCache) {
-        const missingCompanies = []
-        const rows = []
-        for (const entry of Object.entries(metricCache)) {
-          let missing = false
-          const row = {}
-          const company = entry[0]
-          const values = entry[1]
-          row.name = company
-          for (const p of periods) {
-            const value = values[p]
-            if (value !== undefined) {
-              row[p] = value
-            } else {
-              missingCompanies.push(company)
-              missing = true
-              break
-            }
-          }
-          if (missing) continue
-
-          rows.push(row)
-        }
-
-        const data = {}
-
-        data.columns = [ 'name' ].concat(periods)
-        data.rows = rows
-        data.missing = missingCompanies
-
-        return data
+        return metricCache
       }
     }
   }
@@ -160,22 +159,29 @@ function saveToLocalCache(component, metrics, data) {
     metricsCache[metrics] = metricCache
   }
 
+  const now = new Date()
   const mainColumn = data.columns[0]
   const columns = data.columns.slice(1)
   const rowsToAdd = []
-  for (const row of data.rows) {
-    const company = row[mainColumn]
-    let companyCache = metricCache[company]
-    if (!companyCache) {
-      companyCache = {}
-      metricCache[company] = companyCache
+  for (const period of columns) {
+    let periodCache = metricCache[period]
+    if (!periodCache) {
+      periodCache = {}
+      metricCache[period] = periodCache
     }
+    periodCache.updatedAt = now
 
-    const rowToAdd = [component, metrics, company]
-    for (const period of columns) {
+    for (const row of data.rows) {
+      const company = row[mainColumn]
       const value = row[period] || 0
-      rowsToAdd.push(rowToAdd.concat([period, value]))
-      companyCache[period] = value
+      periodCache[company] = value
+      rowsToAdd.push([
+        component,
+        metrics,
+        company,
+        period,
+        value,
+      ])
     }
   }
 
