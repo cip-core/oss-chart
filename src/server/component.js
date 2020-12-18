@@ -5,12 +5,19 @@ const HTMLParser = require('node-html-parser');
 
 const utils = require('./utils');
 
-const router = express.Router();
+const router = express.Router({
+  mergeParams: true,
+});
 
-//router.get('/*', officialApi); // Not used by API
+router.get('/', getComponents);
 router.get('/:component', renderPage);
 router.post('/:component/companies', listCompanies);
 router.post('/:component/:metrics', officialApi);
+
+async function getComponents(req, res, next) {
+  const components = await utils.loadComponents();
+  await res.json(components);
+}
 
 async function renderPage(req, res, next) {
   const component = req.params.component;
