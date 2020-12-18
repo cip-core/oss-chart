@@ -187,7 +187,7 @@ function vanillaSelectBox(domSelector, options) {
             this.inputBox.setAttribute("type", "text");
             this.inputBox.setAttribute("id", "search_" + this.domSelector);
 
-            let fontSizeForP = this.isMultiple ? "12px" : "6px";
+            let fontSizeForP = this.isMultiple ? "12px" : "inherit";
             var para = document.createElement("p");
             this.ul.appendChild(para);
             para.style.fontSize = fontSizeForP;

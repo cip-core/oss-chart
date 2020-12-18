@@ -8,9 +8,16 @@ const utils = require('./utils');
 const router = express.Router();
 
 //router.get('/*', officialApi); // Not used by API
+router.get('/', mainPage);
 router.get('/:component', renderPage);
 router.post('/:component/companies', listCompanies);
 router.post('/:component/:metrics', officialApi);
+
+async function mainPage(req, res, next) {
+  const filePath = 'stack.html';
+  const html = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
+  return await res.send(html);
+}
 
 async function renderPage(req, res, next) {
   const component = req.params.component;
@@ -18,7 +25,7 @@ async function renderPage(req, res, next) {
   const components = await utils.loadComponents();
   for (const c of components) {
     if (c.short === component) {
-      const filePath = 'index.html';
+      const filePath = 'component.html';
       const html = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
       const document = HTMLParser.parse(html);
       document.querySelector('#componentName').set_content(c.name);

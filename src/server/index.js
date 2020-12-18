@@ -1,7 +1,8 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 
-const route = require('./route')
+const componentRoute = require('./component')
+const stackRoute = require('./stack')
 const database = require('./database')
 
 const app = express()
@@ -28,7 +29,8 @@ async function init() {
     res.redirect(`/component/${defaultComponent}`)
   })
   app.use(express.static(__dirname + '/../public'))
-  app.use('/component', route)
+  app.use('/component', componentRoute)
+  app.use('/stack', stackRoute)
 
   return app
 }
