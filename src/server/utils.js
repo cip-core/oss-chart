@@ -248,7 +248,15 @@ async function saveCompanyStacksToDatabase(data) {
   )
 }
 
-async function saveComponentStacksToDatabase(data) {
+async function saveComponentStacksToDatabase(stack) {
+  const data = []
+  for (const component of stack.components) {
+    data.push([
+      stack.name,
+      component,
+    ])
+  }
+
   // generate id for each row based on parent-child concatenation
   data.map(row => row.unshift(row.join('-')))
 
@@ -260,6 +268,7 @@ async function saveComponentStacksToDatabase(data) {
       'child',
     ],
     data,
+    true,
   )
 }
 
@@ -368,4 +377,5 @@ module.exports = {
   loadData,
   loadCompanies,
   loadComponents,
+  saveComponentStacksToDatabase,
 };

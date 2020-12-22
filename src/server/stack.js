@@ -5,13 +5,61 @@ const HTMLParser = require('node-html-parser');
 
 const utils = require('./utils');
 
-const router = express.Router();
+const router = express.Router({
+  mergeParams: true,
+});
 
-//router.get('/*', officialApi); // Not used by API
 router.get('/', mainPage);
+
+router.get('/components', getComponentStacks);
+router.post('/components', createComponentStack);
+
 router.get('/:component', renderPage);
 router.post('/:component/companies', listCompanies);
 router.post('/:component/:metrics', officialApi);
+
+async function getComponentStacks(req, res, next) {
+  // TODO : for testing purpose
+  const components = [
+    {
+      short: 'k8s',
+      name: 'Kubernetes',
+      href: '',
+    },
+    {
+      short: 'harbor',
+      name: 'Harbor',
+      href: '',
+    },
+    {
+      short: 'helm',
+      name: 'Helm',
+      href: '',
+    },
+  ];
+  const componentStacks = [
+    {
+      name: 'Stack 1',
+      components: components,
+    },
+    {
+      name: 'Stack 2',
+      components: components.slice(1),
+    },
+    {
+      name: 'Stack 3',
+      components: components.slice(2),
+    },
+  ];
+
+  return await res.json(componentStacks);
+}
+
+async function createComponentStack(req, res, next) {
+  const body = req.body;
+  const response = await utils.saveComponentStacksToDatabase(body);
+  await res.json(response);
+}
 
 async function mainPage(req, res, next) {
   const filePath = 'stack.html';

@@ -20,6 +20,12 @@ async function createTables() {
   if (client) return await client.query(sql);
 }
 
+async function dropTables() {
+  const filePath = 'reset.sql'
+  const sql = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' })
+  if (client) return await client.query(sql);
+}
+
 async function selectFrom(table, columns, where) {
   const sql = `SELECT ${columns.join(', ')} \n` +
     `FROM ${table} \n` +
@@ -34,7 +40,7 @@ async function insertInto(table, columns = [], rows = []) {
   if (client) return await client.query(sql)
 }
 
-async function upsert(table, columns = [], rows = []) {
+async function upsert(table, columns = [], rows = [], log = false) {
   const idColumn = columns[0]
   const valueColumn = columns[columns.length - 1]
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
@@ -43,6 +49,7 @@ async function upsert(table, columns = [], rows = []) {
     `ON CONFLICT (${idColumn}) \n` +
     'DO UPDATE SET \n' +
     `${valueColumn} = excluded.${valueColumn} ;`
+  if (log) console.log(sql)
   if (client) return await client.query(sql)
 }
 
@@ -56,6 +63,7 @@ async function update(table, values = {}, conditions = []) {
 module.exports = {
   init,
   createTables,
+  dropTables,
   selectFrom,
   insertInto,
   upsert,

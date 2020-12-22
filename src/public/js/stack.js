@@ -2,64 +2,6 @@ const apiBaseUrl = window.location.origin;
 
 let tabindex = 1;
 
-// TODO : for testing purpose
-const components = [
-  {
-    short: 'k8s',
-    name: 'Kubernetes',
-    href: '',
-  },
-  {
-    short: 'docker',
-    name: 'Docker',
-    href: '',
-  },
-  {
-    short: 'helm',
-    name: 'Helm',
-    href: '',
-  },
-];
-const componentStacks = [
-  {
-    name: 'Stack 1',
-    components: components,
-  },
-  {
-    name: 'Stack 2',
-    components: components.slice(1),
-  },
-  {
-    name: 'Stack 3',
-    components: components.slice(2),
-  },
-];
-const companies = [
-  {
-    name: 'Google',
-  },
-  {
-    name: 'Microsoft',
-  },
-  {
-    name: 'Amazon',
-  },
-];
-const companyStacks = [
-  {
-    name: 'Group 1',
-    components: companies,
-  },
-  {
-    name: 'Group 2',
-    components: companies.slice(1),
-  },
-  {
-    name: 'Group 3',
-    components: companies.slice(2),
-  },
-];
-
 async function callApi(method, url, headers = {}, data) {
   Object.assign(headers, {
     'Accept': 'application/json',
@@ -99,13 +41,13 @@ function sortByName(a, b) {
 }
 
 async function loadComponents() {
-  const components = await callApi('GET', apiBaseUrl + '/component');
+  const components = await callApi('GET', apiBaseUrl + '/components');
   components.sort(sortByName);
   return components.filter(component => component.short !== 'all');
 }
 
 async function loadComponentStacks() {
-  return componentStacks;
+  return await callApi('GET', apiBaseUrl + '/stacks/components');
 }
 
 function appendElement(parent, tagName, attributes = {}) {
@@ -179,6 +121,7 @@ function createSelection(parent, id, callback, multiple, placeholder, disabled =
   if (placeholder) selectionOptions.placeHolder = placeholder;
 
   let multipleSelection = new vanillaSelectBox(`#${id}`, selectionOptions);
+  multipleSelection.disable();
   const pointer = {};
   callback().then(function (values) {
     multipleSelection = pointer.selection;
@@ -245,7 +188,7 @@ createButton.onclick = function (event) {
   const selectionPointer = createSelection(subGrid2, selectionId, loadComponents, true, 'Loading...');
 
   const submit = createSubmitButton(mainForm);
-  submit.onclick = function (event) {
+  submit.onclick = async function (event) {
     const stackName = input.value;
     if (!stackName) {
       return;
@@ -255,9 +198,11 @@ createButton.onclick = function (event) {
       return;
     }
     // TODO : create stack in backend
-    console.log(apiBaseUrl);
-    console.log(stackName);
-    console.log(components);
+    const response = await callApi('POST', apiBaseUrl + '/stacks/components', {}, {
+      name: stackName,
+      components: components,
+    });
+    console.log(response);
   };
 };
 

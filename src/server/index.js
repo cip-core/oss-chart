@@ -26,11 +26,11 @@ async function init() {
   app.use(preprocessRequest)
   app.use(logRequest)
   app.get('/', function(req, res) {
-    res.redirect(`/component/${defaultComponent}`)
+    res.redirect(`/components/${defaultComponent}`)
   })
   app.use(express.static(__dirname + '/../public'))
-  app.use('/component', componentRoute)
-  app.use('/stack', stackRoute)
+  app.use('/components', componentRoute)
+  app.use('/stacks', stackRoute)
 
   return app
 }
@@ -45,6 +45,9 @@ async function initDatabase() {
     port: parseInt(config.POSTGRESQL_PORT),
   }
   await database.init(clientConfig)
+  if (config.RESET_DATABASE === 'true') {
+    await database.dropTables()
+  }
   await database.createTables()
 }
 
