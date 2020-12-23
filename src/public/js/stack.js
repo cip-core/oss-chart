@@ -197,7 +197,6 @@ createButton.onclick = function (event) {
     if (components.length === 0) {
       return;
     }
-    // TODO : create stack in backend
     const response = await callApi('POST', apiBaseUrl + '/stacks/components', {}, {
       name: stackName,
       components: components,
@@ -235,7 +234,7 @@ editButton.onclick = function (event) {
   };
 
   const submit = createSubmitButton(mainForm);
-  submit.onclick = function (event) {
+  submit.onclick = async function (event) {
     const stackName = getSelectedItems(stackSelectionPointer.selection)[0];
     if (stackName === undefined) {
       return;
@@ -244,10 +243,10 @@ editButton.onclick = function (event) {
     if (components.length === 0) {
       return;
     }
-    // TODO : edit stack in backend
-    console.log(apiBaseUrl);
-    console.log(stackName);
-    console.log(components);
+    const response = await callApi('PUT', apiBaseUrl + `/stacks/components/${stackName}`, {}, {
+      components: components,
+    });
+    console.log(response);
   };
 };
 
@@ -262,13 +261,12 @@ deleteButton.onclick = function (event) {
   const stackSelectionPointer = createSelection(subGrid1, 'stacksSelection', loadComponentStacks, false);
 
   const submit = createSubmitButton(mainForm, 'Delete');
-  submit.onclick = function (event) {
+  submit.onclick = async function (event) {
     const stackName = getSelectedItems(stackSelectionPointer.selection)[0];
     if (stackName === undefined) {
       return;
     }
-    // TODO : edit stack in backend
-    console.log(apiBaseUrl);
-    console.log(stackName);
+    const response = await callApi('DELETE', apiBaseUrl + `/stacks/components/${stackName}`);
+    console.log(response);
   };
 };

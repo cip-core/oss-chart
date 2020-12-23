@@ -249,6 +249,12 @@ async function saveCompanyStacksToDatabase(data) {
 }
 
 async function saveComponentStacksToDatabase(stack) {
+  let stackCache = stacksLocalCache[stack.name]
+  if (!stackCache) {
+    stackCache = stack
+    stacksLocalCache[stack.name] = stackCache
+  }
+
   const data = []
   for (const component of stack.components) {
     data.push([
@@ -270,6 +276,26 @@ async function saveComponentStacksToDatabase(stack) {
     data,
     true,
   )
+}
+
+async function deleteComponentStackFromDatabase(name) {
+  delete stacksLocalCache[name]
+
+  return await database.deleteFrom(
+    'component_stacks',
+    [
+      `parent = '${name}'`,
+    ],
+    true,
+  )
+}
+
+function getComponentStacks(name) {
+  if (name) {
+    return stacksLocalCache[name]
+  }
+
+  return Object.values(stacksLocalCache)
 }
 
 async function fetchData(component, query) {
@@ -378,4 +404,6 @@ module.exports = {
   loadCompanies,
   loadComponents,
   saveComponentStacksToDatabase,
+  getComponentStacks,
+  deleteComponentStackFromDatabase,
 };

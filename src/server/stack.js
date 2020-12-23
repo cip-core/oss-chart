@@ -13,51 +13,46 @@ router.get('/', mainPage);
 
 router.get('/components', getComponentStacks);
 router.post('/components', createComponentStack);
+router.put('/components/:name', updateComponentStack);
+router.delete('/components/:name', deleteComponentStack);
 
 router.get('/:component', renderPage);
 router.post('/:component/companies', listCompanies);
 router.post('/:component/:metrics', officialApi);
 
 async function getComponentStacks(req, res, next) {
-  // TODO : for testing purpose
-  const components = [
-    {
-      short: 'k8s',
-      name: 'Kubernetes',
-      href: '',
-    },
-    {
-      short: 'harbor',
-      name: 'Harbor',
-      href: '',
-    },
-    {
-      short: 'helm',
-      name: 'Helm',
-      href: '',
-    },
-  ];
-  const componentStacks = [
-    {
-      name: 'Stack 1',
-      components: components,
-    },
-    {
-      name: 'Stack 2',
-      components: components.slice(1),
-    },
-    {
-      name: 'Stack 3',
-      components: components.slice(2),
-    },
-  ];
+  const components = await utils.loadComponents();
+  const stacks = await utils.getComponentStacks();
+  for (const stack of stacks) {
+    stack.components = stack.components.map(function (short) {
+      if (short.short) return short;
+      return components.filter(component => component.short === short)[0];
+    })
+  }
 
-  return await res.json(componentStacks);
+  return await res.json(stacks);
 }
 
 async function createComponentStack(req, res, next) {
   const body = req.body;
   const response = await utils.saveComponentStacksToDatabase(body);
+  await res.json(response);
+}
+
+async function updateComponentStack(req, res, next) {
+  const name = req.params.name;
+  const body = req.body;
+  body.name = name;
+
+  await utils.deleteComponentStackFromDatabase(body.name);
+  const response = await utils.saveComponentStacksToDatabase(body);
+  await res.json(response);
+}
+
+async function deleteComponentStack(req, res, next) {
+  const name = req.params.name;
+
+  const response = await utils.deleteComponentStackFromDatabase(name);
   await res.json(response);
 }
 

@@ -49,7 +49,7 @@ async function upsert(table, columns = [], rows = [], log = false) {
     `ON CONFLICT (${idColumn}) \n` +
     'DO UPDATE SET \n' +
     `${valueColumn} = excluded.${valueColumn} ;`
-  if (log) console.log(sql)
+  if (log) console.log(`= = = = =\n${sql}`)
   if (client) return await client.query(sql)
 }
 
@@ -57,6 +57,13 @@ async function update(table, values = {}, conditions = []) {
   const sql = `UPDATE ${table} \n` +
     `SET ${Object.entries(values).map(entry => `${entry[0]} = ${entry[1]}`).join(',\n')} \n` +
     `WHERE ${conditions.join(' AND ')} ;`
+  if (client) return await client.query(sql)
+}
+
+async function deleteFrom(table, conditions = [], log = false) {
+  const sql = `DELETE FROM ${table} \n` +
+    `WHERE ${conditions.join(' AND ')} ;`
+  if (log) console.log(`= = = = =\n${sql}`)
   if (client) return await client.query(sql)
 }
 
@@ -68,4 +75,5 @@ module.exports = {
   insertInto,
   upsert,
   update,
+  deleteFrom,
 }
