@@ -50,7 +50,7 @@ async function loadCompanies(component) {
       companiesToAdd.push(company)
     }
   }
-  await saveCompaniesToDatabase(companiesToAdd.map(company => [ company ]))
+  await saveCompaniesToDatabase(companiesToAdd.map(company => [company]))
 
   return companies
 }
@@ -85,9 +85,7 @@ async function loadData(component, metrics, periods, companies) {
       data.columns = [data.columns[0]].concat(periods)
     }
     const rowsToAdd = saveToLocalCache(component, metrics, data)
-    if (rowsToAdd.length > 0) {
-      await saveComponentsCacheToDatabase(rowsToAdd)
-    }
+    await saveComponentsCacheToDatabase(rowsToAdd)
 
     cachedData = loadFromCache(component, metrics, periods)
   }
@@ -195,6 +193,8 @@ function saveToLocalCache(component, metrics, data) {
 }
 
 async function saveComponentsCacheToDatabase(data) {
+  if (data.length === 0) return
+
   // generate id for each row based on all columns (except last) concatenation
   data.map(row => row.unshift(row.slice(0, -1).join('-')))
 
@@ -213,6 +213,8 @@ async function saveComponentsCacheToDatabase(data) {
 }
 
 async function saveComponentsToDatabase(data) {
+  if (data.length === 0) return
+
   return await database.upsert(
     'components',
     [
@@ -226,6 +228,8 @@ async function saveComponentsToDatabase(data) {
 }
 
 async function saveCompaniesToDatabase(data) {
+  if (data.length === 0) return
+
   return await database.upsert(
     'companies',
     [
@@ -236,6 +240,8 @@ async function saveCompaniesToDatabase(data) {
 }
 
 async function saveCompanyStacksToDatabase(data) {
+  if (data.length === 0) return
+
   // generate id for each row based on parent-child concatenation
   data.map(row => row.unshift(row.join('-')))
 
@@ -264,6 +270,8 @@ async function saveComponentStacksToDatabase(stack) {
       component,
     ])
   }
+
+  if (data.length === 0) return
 
   // generate id for each row based on parent-child concatenation
   data.map(row => row.unshift(row.join('-')))
