@@ -8,8 +8,11 @@ let shouldLog
 async function init(clientConfig) {
   try {
     client = new Client(clientConfig)
+    console.log('Database connection...')
     await client.connect()
+    console.log('Database connected')
   } catch (e) {
+    console.error('Database connection error')
     client = undefined
     throw e
   }

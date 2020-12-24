@@ -16,10 +16,8 @@ const defaultComponent = 'k8s'
 async function init() {
   try {
     await initDatabase()
-    console.log('Database connected')
   } catch (e) {
     console.error(e)
-    console.error('Database connection error')
   }
   app.use(cors)
   app.use(preprocessRequest)
