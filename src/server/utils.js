@@ -12,6 +12,8 @@ const baseUrl = `https://${hostname}/`;
 const cacheTime = parseInt(config.CACHE_TIME) // in minutes
 console.log(`Cache time : ${cacheTime} minute(s)`)
 
+database.setLogging(config.LOG_QUERIES === 'true')
+
 setInterval(updateComponents, 5 * 60 * 1000);
 
 function queryToBody(query) {

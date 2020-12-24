@@ -3,7 +3,6 @@ const bodyParser = require('body-parser')
 
 const componentRoute = require('./component')
 const stackRoute = require('./stack')
-const database = require('./database')
 
 const app = express()
 
@@ -37,6 +36,8 @@ async function init() {
 
 async function initDatabase() {
   const config = require('./config')
+  const database = require('./database')
+
   const clientConfig = {
     user: config.POSTGRESQL_USER,
     host: config.POSTGRESQL_HOST,

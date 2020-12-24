@@ -16,9 +16,9 @@ router.post('/components', createComponentStack);
 router.put('/components/:name', updateComponentStack);
 router.delete('/components/:name', deleteComponentStack);
 
-router.get('/:component', renderPage);
-router.post('/:component/companies', listCompanies);
-router.post('/:component/:metrics', officialApi);
+router.get('/:stack', renderPage);
+router.post('/:stack/companies', listCompanies);
+router.post('/:stack/:metrics', officialApi);
 
 async function getComponentStacks(req, res, next) {
   const components = await utils.loadComponents();
@@ -63,7 +63,7 @@ async function mainPage(req, res, next) {
 }
 
 async function renderPage(req, res, next) {
-  const component = req.params.component;
+  const component = req.params.stack;
 
   const components = await utils.loadComponents();
   for (const c of components) {
@@ -82,13 +82,13 @@ async function renderPage(req, res, next) {
 }
 
 async function listCompanies(req, res, next) {
-  const component = req.params.component
+  const component = req.params.stack
   const companies = await utils.loadCompanies(component)
   await res.json(companies)
 }
 
 async function officialApi(req, res, next) {
-  const component = req.params.component;
+  const component = req.params.stack;
   const metrics = req.params.metrics;
 
   const { periods, companies } = req.body;
