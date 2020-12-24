@@ -31,7 +31,7 @@ function logQuery(sqlBegin, values, sqlEnd) {
   }
   const sqlValues = subValues.length > 0 ? `${subValues.join(',\n')} \n` : ''
   const sql = sqlBegin + sqlValues + sqlEnd
-  console.log(`= = = = =\n${sql}`)
+  console.log(`[${new Date().toISOString()}]\n${sql}`)
 }
 
 async function createTables() {
