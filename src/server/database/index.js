@@ -19,7 +19,7 @@ function setLogging(logging) {
   shouldLog = logging
 }
 
-function logQuery(sqlBegin, values, sqlEnd) {
+function logQuery(sqlBegin, values = [], sqlEnd = '') {
   let subValues = []
   const displayedItems = 4
   if (values.length > displayedItems) {
@@ -37,12 +37,14 @@ function logQuery(sqlBegin, values, sqlEnd) {
 async function createTables() {
   const filePath = 'init.sql'
   const sql = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' })
+  if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql);
 }
 
 async function dropTables() {
   const filePath = 'reset.sql'
   const sql = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' })
+  if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql);
 }
 
@@ -50,14 +52,16 @@ async function selectFrom(table, columns, where) {
   const sql = `SELECT ${columns.join(', ')} \n` +
     `FROM ${table} \n` +
     `WHERE ${where.join(' AND \n')};`
+  if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql)
 }
 
-async function insertInto(table, columns = [], rows = []) {
+async function insertInto(table, columns = [], rows = [], log = false) {
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
-    'VALUES \n' +
-    `${rows.map(row => `(${row.join(', ')})`).join(',\n')} ;`
-  if (client) return await client.query(sql)
+    'VALUES \n'
+  const values = rows.map(row => `(${row.join(', ')})`)
+  if (shouldLog || log) logQuery(sql, values)
+  if (client) return await client.query(sql + `${values.join(',\n')} ;`)
 }
 
 async function upsert(table, columns = [], rows = [], log = false) {
@@ -78,18 +82,18 @@ async function upsert(table, columns = [], rows = [], log = false) {
   if (client) return await client.query(sql)
 }
 
-async function update(table, values = {}, conditions = []) {
+async function update(table, values = {}, conditions = [], log = false) {
   const sql = `UPDATE ${table} \n` +
     `SET ${Object.entries(values).map(entry => `${entry[0]} = ${entry[1]}`).join(',\n')} \n` +
     `WHERE ${conditions.join(' AND ')} ;`
+  if (shouldLog || log) logQuery(sql)
   if (client) return await client.query(sql)
 }
 
 async function deleteFrom(table, conditions = [], log = false) {
-  const sql1 = `DELETE FROM ${table} \n`
-  const sql2 = `WHERE ${conditions.join(' AND ')} ;`
-
-  if (shouldLog || log) logQuery(sql1, [], sql2)
+  const sql = `DELETE FROM ${table} \n` +
+    `WHERE ${conditions.join(' AND ')} ;`
+  if (shouldLog || log) logQuery(sql)
   if (client) return await client.query(sql1 + sql2)
 }
 
