@@ -37,6 +37,7 @@ function logQuery(sqlBegin, values = [], sqlEnd = '') {
 async function createTables() {
   const filePath = 'init.sql'
   const sql = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' })
+  console.log('Creating tables...')
   if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql);
 }
@@ -44,6 +45,7 @@ async function createTables() {
 async function dropTables() {
   const filePath = 'reset.sql'
   const sql = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' })
+  console.log('Dropping tables...')
   if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql);
 }
@@ -56,15 +58,15 @@ async function selectFrom(table, columns, where) {
   if (client) return await client.query(sql)
 }
 
-async function insertInto(table, columns = [], rows = [], log = false) {
+async function insertInto(table, columns = [], rows = []) {
   const sql = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
     'VALUES \n'
   const values = rows.map(row => `(${row.join(', ')})`)
-  if (shouldLog || log) logQuery(sql, values)
+  if (shouldLog) logQuery(sql, values)
   if (client) return await client.query(sql + `${values.join(',\n')} ;`)
 }
 
-async function upsert(table, columns = [], rows = [], log = false) {
+async function upsert(table, columns = [], rows = []) {
   const idColumn = columns[0]
   const valueColumn = columns[columns.length - 1]
   const sql1 = `INSERT INTO ${table} (${columns.join(', ')}) \n` +
@@ -74,7 +76,7 @@ async function upsert(table, columns = [], rows = [], log = false) {
     'DO UPDATE SET \n' +
     `${valueColumn} = excluded.${valueColumn} ;`
 
-  if (shouldLog || log) logQuery(sql1, values, sql3)
+  if (shouldLog) logQuery(sql1, values, sql3)
 
   const sql2 = `${values.join(',\n')} \n`
   const sql = sql1 + sql2 + sql3
@@ -82,18 +84,18 @@ async function upsert(table, columns = [], rows = [], log = false) {
   if (client) return await client.query(sql)
 }
 
-async function update(table, values = {}, conditions = [], log = false) {
+async function update(table, values = {}, conditions = []) {
   const sql = `UPDATE ${table} \n` +
     `SET ${Object.entries(values).map(entry => `${entry[0]} = ${entry[1]}`).join(',\n')} \n` +
     `WHERE ${conditions.join(' AND ')} ;`
-  if (shouldLog || log) logQuery(sql)
+  if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql)
 }
 
-async function deleteFrom(table, conditions = [], log = false) {
+async function deleteFrom(table, conditions = []) {
   const sql = `DELETE FROM ${table} \n` +
     `WHERE ${conditions.join(' AND ')} ;`
-  if (shouldLog || log) logQuery(sql)
+  if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql1 + sql2)
 }
 

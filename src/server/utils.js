@@ -284,7 +284,6 @@ async function saveComponentStacksToDatabase(stack) {
       'child',
     ],
     data,
-    true,
   )
 }
 
@@ -296,7 +295,6 @@ async function deleteComponentStackFromDatabase(name) {
     [
       `parent = '${name}'`,
     ],
-    true,
   )
 }
 
