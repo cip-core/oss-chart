@@ -1,4 +1,4 @@
-const apiBaseUrl = window.location.href
+const apiBaseUrl = window.location.href.split('?')[0]
 
 const defaultCompanies = [
   'Google',
@@ -239,17 +239,22 @@ function buildChart(parent, data) {
           value: subgroupValue.value,
           percentage: subgroupValue.percentage,
           updatedAt: d.updatedAt,
+          company: d.name,
           isLast: d[columns[0]] === groups[groups.length - 1],
         };
       });
     })
     .enter().append("rect")
     .on("mouseover", function(d) {
+      d3.select(this).style("cursor", "pointer")
       tooltip.transition()
         .duration(200)
         .style("opacity", .9);
       const time = times.filter(o => o.short === d.key)[0]
-      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br><i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i>`)
+      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
+        + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
+        + `Click for more details`
+      )
         .style("left", (d3.event.pageX) + "px")
         .style("top", (d3.event.pageY - 28) + "px");
     })
@@ -257,6 +262,9 @@ function buildChart(parent, data) {
       tooltip.transition()
         .duration(500)
         .style("opacity", 0);
+    })
+    .on("click", function(d) {
+      window.location.href = apiBaseUrl + `?company=${d.company}`
     })
     .attr("x", function(d) { return xSubgroup(d.key); })
     .attr("y", function(d) { return y(d.percentage); })
