@@ -12,7 +12,9 @@ const baseUrl = `https://${hostname}/`;
 const cacheTime = parseInt(config.CACHE_TIME) // in minutes
 console.log(`Cache time : ${cacheTime} minute(s)`)
 
-setInterval(updateComponents, 5 * 60 * 1000);
+database.setLogging(config.LOG_QUERIES === 'true')
+
+setInterval(updateComponents, cacheTime * 60 * 1000);
 
 function queryToBody(query) {
   return {
@@ -48,7 +50,7 @@ async function loadCompanies(component) {
       companiesToAdd.push(company)
     }
   }
-  await saveCompaniesToDatabase(companiesToAdd.map(company => [ company ]))
+  await saveCompaniesToDatabase(companiesToAdd.map(company => [company]))
 
   return companies
 }
@@ -83,9 +85,7 @@ async function loadData(component, metrics, periods, companies) {
       data.columns = [data.columns[0]].concat(periods)
     }
     const rowsToAdd = saveToLocalCache(component, metrics, data)
-    if (rowsToAdd.length > 0) {
-      await saveComponentsCacheToDatabase(rowsToAdd)
-    }
+    await saveComponentsCacheToDatabase(rowsToAdd)
 
     cachedData = loadFromCache(component, metrics, periods)
   }
@@ -193,6 +193,8 @@ function saveToLocalCache(component, metrics, data) {
 }
 
 async function saveComponentsCacheToDatabase(data) {
+  if (data.length === 0) return
+
   // generate id for each row based on all columns (except last) concatenation
   data.map(row => row.unshift(row.slice(0, -1).join('-')))
 
@@ -211,6 +213,8 @@ async function saveComponentsCacheToDatabase(data) {
 }
 
 async function saveComponentsToDatabase(data) {
+  if (data.length === 0) return
+
   return await database.upsert(
     'components',
     [
@@ -224,6 +228,8 @@ async function saveComponentsToDatabase(data) {
 }
 
 async function saveCompaniesToDatabase(data) {
+  if (data.length === 0) return
+
   return await database.upsert(
     'companies',
     [
@@ -234,6 +240,8 @@ async function saveCompaniesToDatabase(data) {
 }
 
 async function saveCompanyStacksToDatabase(data) {
+  if (data.length === 0) return
+
   // generate id for each row based on parent-child concatenation
   data.map(row => row.unshift(row.join('-')))
 
@@ -248,7 +256,25 @@ async function saveCompanyStacksToDatabase(data) {
   )
 }
 
-async function saveComponentStacksToDatabase(data) {
+async function saveComponentStacksToDatabase(stack) {
+  const stackKey = stack.name.toLowerCase()
+
+  let stackCache = stacksLocalCache[stackKey]
+  if (!stackCache) {
+    stackCache = stack
+    stacksLocalCache[stackKey] = stackCache
+  }
+
+  const data = []
+  for (const component of stack.components) {
+    data.push([
+      stack.name,
+      component,
+    ])
+  }
+
+  if (data.length === 0) return
+
   // generate id for each row based on parent-child concatenation
   data.map(row => row.unshift(row.join('-')))
 
@@ -261,6 +287,25 @@ async function saveComponentStacksToDatabase(data) {
     ],
     data,
   )
+}
+
+async function deleteComponentStackFromDatabase(name) {
+  delete stacksLocalCache[name]
+
+  return await database.deleteFrom(
+    'component_stacks',
+    [
+      `parent = '${name}'`,
+    ],
+  )
+}
+
+function getComponentStacks(name) {
+  if (name) {
+    return stacksLocalCache[name]
+  }
+
+  return Object.values(stacksLocalCache)
 }
 
 async function fetchData(component, query) {
@@ -300,6 +345,10 @@ function processData(data) {
   out.columns = keys
 
   return out
+}
+
+async function loadStacks(name) {
+  return stacksLocalCache[name]
 }
 
 async function loadComponents() {
@@ -366,6 +415,10 @@ function transformComponents(components) {
 
 module.exports = {
   loadData,
+  loadStacks,
   loadCompanies,
   loadComponents,
+  saveComponentStacksToDatabase,
+  getComponentStacks,
+  deleteComponentStackFromDatabase,
 };

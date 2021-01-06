@@ -1,9 +1,3 @@
-DROP TABLE IF EXISTS components_cache;
-DROP TABLE IF EXISTS components;
-DROP TABLE IF EXISTS companies;
-DROP TABLE IF EXISTS component_stacks;
-DROP TABLE IF EXISTS company_stacks;
-
 CREATE TABLE IF NOT EXISTS components_cache (
    id varchar unique,
    component varchar,

@@ -1,8 +1,8 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 
-const route = require('./route')
-const database = require('./database')
+const componentRoute = require('./component')
+const stackRoute = require('./stack')
 
 const app = express()
 
@@ -16,25 +16,26 @@ const defaultComponent = 'k8s'
 async function init() {
   try {
     await initDatabase()
-    console.log('Database connected')
   } catch (e) {
     console.error(e)
-    console.error('Database connection error')
   }
   app.use(cors)
   app.use(preprocessRequest)
   app.use(logRequest)
   app.get('/', function(req, res) {
-    res.redirect(`/component/${defaultComponent}`)
+    res.redirect(`/components/${defaultComponent}`)
   })
   app.use(express.static(__dirname + '/../public'))
-  app.use('/component', route)
+  app.use('/components', componentRoute)
+  app.use('/stacks', stackRoute)
 
   return app
 }
 
 async function initDatabase() {
   const config = require('./config')
+  const database = require('./database')
+
   const clientConfig = {
     user: config.POSTGRESQL_USER,
     host: config.POSTGRESQL_HOST,
@@ -43,6 +44,9 @@ async function initDatabase() {
     port: parseInt(config.POSTGRESQL_PORT),
   }
   await database.init(clientConfig)
+  if (config.RESET_DATABASE === 'true') {
+    await database.dropTables()
+  }
   await database.createTables()
 }
 

@@ -7,6 +7,8 @@ const variables = [
 ]
 // Optional variables and their default values
 const optionalVariables = {
+  'RESET_DATABASE': 'false',
+  'LOG_QUERIES': 'false',
   'POSTGRESQL_HOST': undefined,
   'POSTGRESQL_PORT': undefined,
   'POSTGRESQL_DATABASE': undefined,
