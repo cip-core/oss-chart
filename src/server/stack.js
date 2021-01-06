@@ -118,7 +118,12 @@ async function officialApi(req, res, next) {
           for (const company of data.data.rows) {
             const companyIndex = rows.map(c => c.name).indexOf(company.name)
             if (companyIndex === -1) {
-              rows.push(company)
+              const companyData = {
+                name: company.name,
+                updatedAt: company.updatedAt,
+              }
+              companyData[column] = company[column] || 0
+              rows.push(companyData)
             } else {
               const companyData = rows[companyIndex]
               companyData[column] = (companyData[column] || 0) + (company[column] || 0)
