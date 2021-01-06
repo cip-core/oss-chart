@@ -64,15 +64,29 @@ async function mainPage(req, res, next) {
 
 async function renderPage(req, res, next) {
   const stackName = req.params.stack;
+  const { company } = req.query
 
   const stack = await utils.loadStacks(stackName);
   if (stack) {
-    const filePath = 'stack.html';
+    let filePath;
+    if (company) {
+      const companies = await utils.loadCompanies()
+      const index = companies.indexOf(company)
+      if (index === -1) {
+        const url = req.originalUrl.split('?')[0]
+        return res.redirect(url)
+      }
+      filePath = 'stackCompany.html';
+    } else {
+      filePath = 'stack.html';
+    }
+
     const html = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
     const document = HTMLParser.parse(html);
-    document.querySelector('#componentName').set_content(stack.name);
+    document.querySelector('#stackName').set_content(stack.name);
+    if (company) document.querySelector('#companyName').appendChild(company);
     if (stack.svg) document.querySelector('#h1Title').appendChild(stack.svg);
-    if (stack.href) document.querySelector('#componentLink').setAttribute('href', stack.href);
+    if (stack.href) document.querySelector('#stackLink').setAttribute('href', stack.href);
     return await res.send(document.toString());
   }
 
@@ -85,12 +99,7 @@ async function listCompanies(req, res, next) {
 
   const stack = await utils.loadStacks(stackName);
   if (stack) {
-    const companies = []
-    for (const component of stack.components) {
-      companies.push(... await utils.loadCompanies(component))
-    }
-
-    return await res.json(companies.filter((value, index, self) => self.indexOf(value) === index))
+    return await res.json(await utils.loadCompanies())
   }
 
   res.statusCode = 404

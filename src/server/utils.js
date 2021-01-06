@@ -39,7 +39,7 @@ const stacksLocalCache = {}
 
 async function loadCompanies(component) {
   // retrieve companies list
-  const response = await loadData(component, 'hcomcontributions', [ 'y10' ])
+  const response = await loadData(component || 'all', 'hcomcontributions', [ 'y10' ])
   const companies = response.data.rows.map(company => company.name).slice(1)
 
   const companiesToAdd = []
@@ -311,7 +311,7 @@ function getComponentStacks(name) {
 async function fetchData(component, query) {
   const body = queryToBody(query)
 
-  const url = `https://${component}.${hostname}/api/tsdb/query`
+  const url = `https://${component ? (component + '.') : ''}${hostname}/api/tsdb/query`
   console.log(`[${new Date().toISOString()}] ${url} : ${query}`)
   return await axios.post(url, body)
 }
