@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <link rel="stylesheet" href="/css/stack.css">
+        <link rel="stylesheet" href="/css/component.css">
         <link rel="stylesheet" href="/css/loading.css">
         <link rel="stylesheet" href="/css/vanillaSelectBox.css">
 
@@ -13,6 +13,54 @@
         <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
     </head>
     <body>
+        <h1 id="h1Title">Analysis of contributors to <text id="componentName">Kubernetes</text></h1>
+
+        <h2>Data used for this study</h2>
+
+        <p>Statistics used in this report are dynamically collected from <a id="componentLink" href='https://devstats.cncf.io/'>CNCF's devstats server</a></p>
+
+        <div id="selection"></div>
+        <div>
+            <p>Contributions</p>
+            <div class='graph' id="hcomcontributions"></div>
+        </div>
+        <div>
+            <p>Contributors</p>
+            <div class='graph' id="hcomcontributors"></div>
+        </div>
+        <div>
+            <p>Pull Requests</p>
+            <div class='graph' id="hcomprs"></div>
+        </div>
+        <div>
+            <p>Pull Requests Authors</p>
+            <div class='graph' id="hcomprcreators"></div>
+        </div>
+        <div>
+            <p>Pull Request Reviewers</p>
+            <div class='graph' id="hcomprreviewers"></div>
+        </div>
+        <div>
+            <p>Commits</p>
+            <div class='graph' id="hcomcommits"></div>
+        </div>
+        <div>
+            <p>Committers</p>
+            <div class='graph' id="hcomcommitters"></div>
+        </div>
+        <div>
+            <p>Commits Commenters</p>
+            <div class='graph' id="commit_commenters"></div>
+        </div>
+        <div>
+            <p>Comments</p>
+            <div class='graph' id="comments"></div>
+        </div>
+        <div>
+            <p>Commenters</p>
+            <div class='graph' id="commenters"></div>
+        </div>
+
         <script src="/js/stack.js"></script>
     </body>
 </html>

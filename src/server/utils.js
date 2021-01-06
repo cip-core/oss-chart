@@ -257,10 +257,12 @@ async function saveCompanyStacksToDatabase(data) {
 }
 
 async function saveComponentStacksToDatabase(stack) {
-  let stackCache = stacksLocalCache[stack.name]
+  const stackKey = stack.name.toLowerCase()
+
+  let stackCache = stacksLocalCache[stackKey]
   if (!stackCache) {
     stackCache = stack
-    stacksLocalCache[stack.name] = stackCache
+    stacksLocalCache[stackKey] = stackCache
   }
 
   const data = []
@@ -345,6 +347,10 @@ function processData(data) {
   return out
 }
 
+async function loadStacks(name) {
+  return stacksLocalCache[name]
+}
+
 async function loadComponents() {
   if (componentsCache === undefined) {
     await updateComponents();
@@ -409,6 +415,7 @@ function transformComponents(components) {
 
 module.exports = {
   loadData,
+  loadStacks,
   loadCompanies,
   loadComponents,
   saveComponentStacksToDatabase,
