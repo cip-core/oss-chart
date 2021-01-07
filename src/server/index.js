@@ -13,6 +13,21 @@ app.use(bodyParser.urlencoded({
 }))
 
 const defaultComponent = 'k8s'
+const defaultCompanies = [
+  'Docker',
+  'Google',
+  'IBM',
+  'Independent',
+  'Microsoft',
+  'Mirantis',
+  'Pivotal',
+  'Red Hat',
+  'VMware',
+]
+
+const defaultQueryString = {
+  companies: defaultCompanies.join(','),
+}
 
 async function init() {
   try {
@@ -24,7 +39,7 @@ async function init() {
   app.use(preprocessRequest)
   app.use(logRequest)
   app.get('/', function(req, res) {
-    res.redirect(`/components/${defaultComponent}`)
+    res.redirect(`/components/${defaultComponent}?${new URLSearchParams(defaultQueryString).toString()}`)
   })
   app.use(express.static(__dirname + '/../public'))
   app.use('/components', componentRoute)
