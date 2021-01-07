@@ -17,7 +17,7 @@ router.put('/components/:name', updateComponentStack);
 router.delete('/components/:name', deleteComponentStack);
 
 router.get('/:stack', renderPage);
-router.post('/:stack/companies', listCompanies);
+router.get('/:stack/details', getDetails);
 router.post('/:stack/:metrics', officialApi);
 
 async function getComponentStacks(req, res, next) {
@@ -34,26 +34,63 @@ async function getComponentStacks(req, res, next) {
 }
 
 async function createComponentStack(req, res, next) {
-  const body = req.body;
-  const response = await utils.saveComponentStacksToDatabase(body);
-  await res.json(response);
+  const { name, components } = req.body;
+
+  let errorMessage = '';
+  if (name === undefined) {
+    errorMessage = 'Missing "name" parameter'
+  } else if (components === undefined) {
+    errorMessage = 'Missing "components" parameter'
+  } else {
+    const short = name.toLowerCase().replace(/ /g, '-');
+    const response = await utils.saveComponentStacksToDatabase({
+      short,
+      name,
+      components,
+    });
+    await res.json(response);
+  }
+
+  if (errorMessage) {
+    res.statusCode = 400
+    await res.json({message: errorMessage});
+  }
 }
 
 async function updateComponentStack(req, res, next) {
-  const name = req.params.name;
-  const body = req.body;
-  body.name = name;
+  const short = req.params.name;
+  const { components } = req.body;
 
-  await utils.deleteComponentStackFromDatabase(body.name);
-  const response = await utils.saveComponentStacksToDatabase(body);
-  await res.json(response);
+
+  let errorMessage = '';
+  if (components === undefined) {
+    errorMessage = 'Missing "components" parameter'
+  } else {
+    const stack = await utils.deleteComponentStackFromDatabase(short);
+    const response = await utils.saveComponentStacksToDatabase({
+      short,
+      name: stack.name,
+      components,
+    });
+    await res.json(response);
+  }
+
+  if (errorMessage) {
+    res.statusCode = 400;
+    await res.json({message: errorMessage});
+  }
 }
 
 async function deleteComponentStack(req, res, next) {
-  const name = req.params.name;
+  const short = req.params.name;
 
-  const response = await utils.deleteComponentStackFromDatabase(name);
-  await res.json(response);
+  const response = await utils.deleteComponentStackFromDatabase(short);
+  if (response) {
+    return await res.json(response);
+  }
+
+  res.statusCode = 404;
+  await res.json({message: `Stack "${short}" does not exist`});
 }
 
 async function mainPage(req, res, next) {
@@ -70,9 +107,9 @@ async function renderPage(req, res, next) {
     const filePath = 'stack.html';
     const html = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
     const document = HTMLParser.parse(html);
-    document.querySelector('#componentName').set_content(stack.name);
+    document.querySelector('#stackName').set_content(stack.name);
     if (stack.svg) document.querySelector('#h1Title').appendChild(stack.svg);
-    if (stack.href) document.querySelector('#componentLink').setAttribute('href', stack.href);
+    if (stack.href) document.querySelector('#stackLink').setAttribute('href', stack.href);
     return await res.send(document.toString());
   }
 
@@ -85,15 +122,22 @@ async function listCompanies(req, res, next) {
 
   const stack = await utils.loadStacks(stackName);
   if (stack) {
-    const companies = []
-    for (const component of stack.components) {
-      companies.push(... await utils.loadCompanies(component))
-    }
-
-    return await res.json(companies.filter((value, index, self) => self.indexOf(value) === index))
+    return await res.json(await utils.loadCompanies())
   }
 
   res.statusCode = 404
+  await res.json({message: `Stack "${stackName}" does not exist`});
+}
+
+async function getDetails(req, res, next) {
+  const stackName = req.params.stack;
+
+  const stack = await utils.loadStacks(stackName);
+  if (stack) {
+    return await res.json(stack);
+  }
+
+  res.statusCode = 404;
   await res.json({message: `Stack "${stackName}" does not exist`});
 }
 

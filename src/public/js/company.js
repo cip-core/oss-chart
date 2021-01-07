@@ -1,6 +1,6 @@
 const apiBaseUrl = window.location.href.split('?')[0]
 
-let defaultCompanies;
+let defaultComponents;
 const times = [
   {
     short: 'w',
@@ -26,45 +26,54 @@ const times = [
 
 createMultipleSelectionList().then(function (dropdown) {
   // Set selected companies by default
-  dropdown.setValue(defaultCompanies)
+  dropdown.setValue(defaultComponents)
 
-  const selectedCompanies = Array.from(dropdown.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
-  updateGraphs(selectedCompanies)
+  const selectedComponents = Array.from(dropdown.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
+  updateGraphs(selectedComponents)
 })
 
-function updateGraphs(companies) {
+function updateGraphs(components) {
   const divs = document.querySelectorAll('div.graph')
   for (const div of divs) {
     div.innerHTML = "" // Clear div
     const loading = createLoading()
     div.append(loading)
     const id = div.getAttribute('id')
-    updateGraph(div, id, companies).then(function() {
+    updateGraph(div, id, components).then(function() {
       div.removeChild(loading)
     })
   }
 }
 
-async function updateGraph(div, metrics, companies) {
-  const periods = times.map(t => t.short)
-  // Retrieve data from API
-  const data = await callApi('POST', `${apiBaseUrl}/${metrics}`, { periods, companies });
+async function updateGraph(div, metrics, components) {
+  const periods = times.map(t => t.short);
 
-  // Remove old chart
-  d3.select(div).select('svg').remove()
+  try {
+    // Retrieve data from API
+    const data = await callApi(
+      'POST',
+      `${apiBaseUrl}/${metrics}`,
+      {periods, components},
+    );
 
-  if (data.rows.length > 0) {
-    // Build Chart
-    const svg = buildChart(div, data)
-    // Put new chart
-    d3.select(div).append(() => svg)
+    // Remove old chart
+    d3.select(div).select('svg').remove()
+
+    if (data.rows.length > 0) {
+      // Build Chart
+      const svg = buildChart(div, data)
+      // Put new chart
+      d3.select(div).append(() => svg)
+    }
+  } catch (e) {
+    d3.select(div).select('svg').remove()
   }
 }
 
 async function createMultipleSelectionList() {
   const label = document.createElement('label')
   label.setAttribute('class', 'selectLabel')
-  label.innerHTML = 'Companies :'
+  label.innerHTML = 'Components :'
 
   const select = document.createElement('select')
   select.setAttribute('id', 'select')
@@ -88,18 +97,27 @@ async function createMultipleSelectionList() {
   let multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
   const query = new URLSearchParams(window.location.search)
-  const queryCompanies = query.get('companies');
-  if (queryCompanies) {
-    defaultCompanies = queryCompanies.split(',');
+  const queryStack = query.get('stack');
+  const queryComponents = query.get('components');
+  if (queryStack) {
+    try {
+      const stackData = await loadStack(queryStack);
+      defaultComponents = stackData.components;
+    } catch (e) {
+      defaultComponents = [];
+    }
+  } else if (queryComponents) {
+    console.log(queryComponents)
+    defaultComponents = queryComponents.split(',');
   } else {
-    defaultCompanies = [];
+    defaultComponents = [];
   }
 
-  const companies = await loadCompanies()
-  for (const company of companies) {
+  const components = await loadComponents()
+  for (const component of components) {
     const option = document.createElement('option')
-    option.setAttribute('value', company)
-    option.innerHTML = company
+    option.setAttribute('value', component.short)
+    option.innerHTML = component.name
     select.append(option)
   }
 
@@ -108,20 +126,24 @@ async function createMultipleSelectionList() {
   multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
   button.onclick = function (event) {
-    const selectedCompanies = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
+    const selectedComponents = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
     const string = new URLSearchParams({
-      companies: selectedCompanies.join(','),
+      components: selectedComponents.join(','),
     }).toString();
     window.history.pushState({}, '', apiBaseUrl + '?' + string);
-    updateGraphs(selectedCompanies)
+    updateGraphs(selectedComponents)
   }
 
   return multipleSelection
 }
 
+async function loadStack(name) {
+  return await callApi('GET', `${window.location.origin}/stacks/${name}/details`)
+}
+
 function sortByName(a, b) {
-  const aName = a.toLowerCase();
-  const bName = b.toLowerCase();
+  const aName = a.name.toLowerCase();
+  const bName = b.name.toLowerCase();
 
   if (aName === bName) return 0;
 
@@ -138,11 +160,11 @@ function isLatinLetter(letter) {
   return letter.toUpperCase() !== letter.toLowerCase()
 }
 
-async function loadCompanies() {
-  const companies = await callApi('GET', `${window.location.origin}/companies`)
-  companies.sort(sortByName) // Sort alphabetically
+async function loadComponents() {
+  const components = await callApi('GET', `${window.location.origin}/components`)
+  components.sort(sortByName) // Sort alphabetically
 
-  return companies
+  return components
 }
 
 function transformPercentage(data, subgroups) {
@@ -270,17 +292,22 @@ function buildChart(parent, data) {
           value: subgroupValue.value,
           percentage: subgroupValue.percentage,
           updatedAt: d.updatedAt,
+          company: d.name,
           isLast: d[columns[0]] === groups[groups.length - 1],
         };
       });
     })
     .enter().append("rect")
     .on("mouseover", function(d) {
+      d3.select(this).style("cursor", "pointer")
       tooltip.transition()
         .duration(200)
         .style("opacity", .9);
       const time = times.filter(o => o.short === d.key)[0]
-      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br><i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i>`)
+      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)`
+        + `<br><i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i>`
+        //+ `<br>Click for more details` TODO
+      )
         .style("left", (d3.event.pageX) + "px")
         .style("top", (d3.event.pageY - 28) + "px");
     })
@@ -289,6 +316,11 @@ function buildChart(parent, data) {
         .duration(500)
         .style("opacity", 0);
     })
+    /* TODO
+    .on("click", function(d) {
+      window.location.href = apiBaseUrl + `?company=${d.company}`
+    })
+     */
     .attr("x", function(d) { return xSubgroup(d.key); })
     .attr("y", function(d) { return y(d.percentage); })
     .attr("width", xSubgroup.bandwidth())

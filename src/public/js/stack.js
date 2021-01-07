@@ -1,16 +1,6 @@
-const apiBaseUrl = window.location.href
+const apiBaseUrl = window.location.href.split('?')[0]
 
-const defaultCompanies = [
-  'Google',
-  'Microsoft',
-  'IBM',
-  'Red Hat',
-  'Mirantis',
-  'Docker',
-  'VMware',
-  'Pivotal',
-  'Independent'
-]
+let defaultCompanies;
 const times = [
   {
     short: 'w',
@@ -58,16 +48,24 @@ function updateGraphs(companies) {
 async function updateGraph(div, metrics, companies) {
   const periods = times.map(t => t.short)
   // Retrieve data from API
-  const data = await postData(`${apiBaseUrl}/${metrics}`, { periods, companies });
-  // Build Chart
-  const svg = buildChart(div, data.data)
+  const data = await callApi('POST', `${apiBaseUrl}/${metrics}`, { periods, companies });
 
-  // Replace old chart
+  // Remove old chart
   d3.select(div).select('svg').remove()
-  d3.select(div).append(() => svg)
+
+  if (data.data.rows.length > 0) {
+    // Build Chart
+    const svg = buildChart(div, data.data)
+    // Put new chart
+    d3.select(div).append(() => svg)
+  }
 }
 
 async function createMultipleSelectionList() {
+  const label = document.createElement('label')
+  label.setAttribute('class', 'selectLabel')
+  label.innerHTML = 'Companies :'
+
   const select = document.createElement('select')
   select.setAttribute('id', 'select')
   select.setAttribute('multiple', '')
@@ -77,6 +75,7 @@ async function createMultipleSelectionList() {
   button.innerHTML = 'Update'
 
   const div = document.getElementById('selection')
+  div.append(label)
   div.append(select)
   div.append(button)
 
@@ -88,6 +87,14 @@ async function createMultipleSelectionList() {
   }
   let multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
+  const query = new URLSearchParams(window.location.search)
+  const queryCompanies = query.get('companies');
+  if (queryCompanies) {
+    defaultCompanies = queryCompanies.split(',');
+  } else {
+    defaultCompanies = [];
+  }
+
   const companies = await loadCompanies()
   for (const company of companies) {
     const option = document.createElement('option')
@@ -97,19 +104,43 @@ async function createMultipleSelectionList() {
   }
 
   multipleSelection.destroy()
+  selectionOptions.placeHolder = 'Select item';
   multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
   button.onclick = function (event) {
     const selectedCompanies = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
+    const string = new URLSearchParams({
+      companies: selectedCompanies.join(','),
+    }).toString();
+    window.history.pushState({}, '', apiBaseUrl + '?' + string);
     updateGraphs(selectedCompanies)
   }
 
   return multipleSelection
 }
 
+function sortByName(a, b) {
+  const aName = a.toLowerCase();
+  const bName = b.toLowerCase();
+
+  if (aName === bName) return 0;
+
+  const aLatin = isLatinLetter(aName[0]);
+  const bLatin = isLatinLetter(bName[0]);
+
+  if (aLatin && !bLatin) return -1;
+  else if (!aLatin && bLatin) return 1;
+
+  return aName < bName ? -1 : 1;
+}
+
+function isLatinLetter(letter) {
+  return letter.toUpperCase() !== letter.toLowerCase()
+}
+
 async function loadCompanies() {
-  const companies = await postData(`${apiBaseUrl}/companies`)
-  //companies.sort() // Sort alphabetically
+  const companies = await callApi('GET', `${window.location.origin}/companies`)
+  companies.sort(sortByName) // Sort alphabetically
 
   return companies
 }
@@ -239,17 +270,22 @@ function buildChart(parent, data) {
           value: subgroupValue.value,
           percentage: subgroupValue.percentage,
           updatedAt: d.updatedAt,
+          company: d.name,
           isLast: d[columns[0]] === groups[groups.length - 1],
         };
       });
     })
     .enter().append("rect")
     .on("mouseover", function(d) {
+      d3.select(this).style("cursor", "pointer")
       tooltip.transition()
         .duration(200)
         .style("opacity", .9);
       const time = times.filter(o => o.short === d.key)[0]
-      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br><i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i>`)
+      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
+        + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
+        + `Click for more details`
+      )
         .style("left", (d3.event.pageX) + "px")
         .style("top", (d3.event.pageY - 28) + "px");
     })
@@ -257,6 +293,10 @@ function buildChart(parent, data) {
       tooltip.transition()
         .duration(500)
         .style("opacity", 0);
+    })
+    .on("click", function(d) {
+      const stack = window.location.pathname.split('/').pop()
+      window.location.href = window.location.origin + `/companies/${d.company}?stack=${stack}`
     })
     .attr("x", function(d) { return xSubgroup(d.key); })
     .attr("y", function(d) { return y(d.percentage); })
@@ -354,10 +394,10 @@ function dateInterval(dateFrom, dateTo) {
   return (outputString || 'few seconds ') + 'ago';
 }
 
-async function postData(url, data = {}) {
+async function callApi(method, url, data) {
   // Default options are marked with *
-  const response = await fetch(url, {
-    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+  const config = {
+    method: method, // *GET, POST, PUT, DELETE, etc.
     /*
     mode: 'no-cors', // no-cors, *cors, same-origin
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
@@ -376,8 +416,15 @@ async function postData(url, data = {}) {
     redirect: 'follow', // manual, *follow, error
     referrerPolicy: 'strict-origin-when-cross-origin', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
     */
-    body: JSON.stringify(data) // body data type must match "Content-Type" header
-  });
+  };
+
+  if (data) config.body = JSON.stringify(data);
+
+  const response = await fetch(url, config);
+  if (!response.ok) {
+    throw new Error("HTTP status " + response.status);
+  }
+
   return response.json(); // parses JSON response into native JavaScript objects
 }
 

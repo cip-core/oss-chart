@@ -10,9 +10,14 @@ h1 > svg {
 
 #selection {
     display: grid;
-    grid-template-columns: max-content max-content;
+    grid-template-columns: max-content max-content max-content;
     grid-column-gap: .5em;
     margin: 1em 0 1em 0;
+    align-items: baseline;
+}
+
+button {
+    height: 100%;
 }
 
 .graph {
