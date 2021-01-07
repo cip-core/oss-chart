@@ -98,7 +98,7 @@ async function createMultipleSelectionList() {
   }
 
   multipleSelection.destroy()
-  delete selectionOptions.placeHolder;
+  selectionOptions.placeHolder = 'Select item';
   multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
   button.onclick = function (event) {
