@@ -34,26 +34,63 @@ async function getComponentStacks(req, res, next) {
 }
 
 async function createComponentStack(req, res, next) {
-  const body = req.body;
-  const response = await utils.saveComponentStacksToDatabase(body);
-  await res.json(response);
+  const { name, components } = req.body;
+
+  let errorMessage = '';
+  if (name === undefined) {
+    errorMessage = 'Missing "name" parameter'
+  } else if (components === undefined) {
+    errorMessage = 'Missing "components" parameter'
+  } else {
+    const short = name.toLowerCase().replace(/ /g, '-');
+    const response = await utils.saveComponentStacksToDatabase({
+      short,
+      name,
+      components,
+    });
+    await res.json(response);
+  }
+
+  if (errorMessage) {
+    res.statusCode = 400
+    await res.json({message: errorMessage});
+  }
 }
 
 async function updateComponentStack(req, res, next) {
-  const name = req.params.name;
-  const body = req.body;
-  body.name = name;
+  const short = req.params.name;
+  const { components } = req.body;
 
-  await utils.deleteComponentStackFromDatabase(body.name);
-  const response = await utils.saveComponentStacksToDatabase(body);
-  await res.json(response);
+
+  let errorMessage = '';
+  if (components === undefined) {
+    errorMessage = 'Missing "components" parameter'
+  } else {
+    const stack = await utils.deleteComponentStackFromDatabase(short);
+    const response = await utils.saveComponentStacksToDatabase({
+      short,
+      name: stack.name,
+      components,
+    });
+    await res.json(response);
+  }
+
+  if (errorMessage) {
+    res.statusCode = 400;
+    await res.json({message: errorMessage});
+  }
 }
 
 async function deleteComponentStack(req, res, next) {
-  const name = req.params.name;
+  const short = req.params.name;
 
-  const response = await utils.deleteComponentStackFromDatabase(name);
-  await res.json(response);
+  const response = await utils.deleteComponentStackFromDatabase(short);
+  if (response) {
+    return await res.json(response);
+  }
+
+  res.statusCode = 404;
+  await res.json({message: `Stack "${short}" does not exist`});
 }
 
 async function mainPage(req, res, next) {
@@ -64,27 +101,13 @@ async function mainPage(req, res, next) {
 
 async function renderPage(req, res, next) {
   const stackName = req.params.stack;
-  const { company } = req.query
 
   const stack = await utils.loadStacks(stackName);
   if (stack) {
-    let filePath;
-    if (company) {
-      const companies = await utils.loadCompanies()
-      const index = companies.indexOf(company)
-      if (index === -1) {
-        const url = req.originalUrl.split('?')[0]
-        return res.redirect(url)
-      }
-      filePath = 'company.html';
-    } else {
-      filePath = 'stack.html';
-    }
-
+    const filePath = 'stack.html';
     const html = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
     const document = HTMLParser.parse(html);
     document.querySelector('#stackName').set_content(stack.name);
-    if (company) document.querySelector('#companyName').appendChild(company);
     if (stack.svg) document.querySelector('#h1Title').appendChild(stack.svg);
     if (stack.href) document.querySelector('#stackLink').setAttribute('href', stack.href);
     return await res.send(document.toString());

@@ -257,7 +257,7 @@ async function saveCompanyStacksToDatabase(data) {
 }
 
 async function saveComponentStacksToDatabase(stack) {
-  const stackKey = stack.name.toLowerCase()
+  const stackKey = stack.short
 
   let stackCache = stacksLocalCache[stackKey]
   if (!stackCache) {
@@ -268,7 +268,7 @@ async function saveComponentStacksToDatabase(stack) {
   const data = []
   for (const component of stack.components) {
     data.push([
-      stack.name,
+      stackKey,
       component,
     ])
   }
@@ -290,14 +290,19 @@ async function saveComponentStacksToDatabase(stack) {
 }
 
 async function deleteComponentStackFromDatabase(name) {
-  delete stacksLocalCache[name]
+  const stack = stacksLocalCache[name]
+  if (stack) {
+    delete stacksLocalCache[name]
 
-  return await database.deleteFrom(
-    'component_stacks',
-    [
-      `parent = '${name}'`,
-    ],
-  )
+    await database.deleteFrom(
+      'component_stacks',
+      [
+        `parent = '${name}'`,
+      ],
+    )
+
+    return stack
+  }
 }
 
 function getComponentStacks(name) {

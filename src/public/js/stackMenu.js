@@ -250,7 +250,7 @@ editButton.onclick = function (event) {
 
     const responseValues = stackSelectionPointer.selection.responseValues;
     const stackName = getSelectedItems(stackSelectionPointer.selection)[0];
-    const selectedStack = responseValues.filter(stack => stack.name === stackName)[0];
+    const selectedStack = responseValues.filter(stack => stack.short === stackName)[0];
     selection = new vanillaSelectBox(selection.domSelector, userOptions);
     selection.setValue(selectedStack.components.map(component => component.short));
 
@@ -287,6 +287,7 @@ deleteButton.onclick = function (event) {
   const submit = createSubmitButton(mainForm, 'Delete');
   submit.onclick = async function (event) {
     const stackName = getSelectedItems(stackSelectionPointer.selection)[0];
+    console.log(stackName)
     if (stackName === undefined) {
       return;
     }
