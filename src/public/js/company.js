@@ -121,8 +121,12 @@ async function createMultipleSelectionList() {
   multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
   button.onclick = function (event) {
-    const selectedCompanies = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
-    updateGraphs(selectedCompanies)
+    const selectedComponents = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
+    const string = new URLSearchParams({
+      components: selectedComponents.join(','),
+    }).toString();
+    window.history.pushState({}, '', apiBaseUrl + '?' + string);
+    updateGraphs(selectedComponents)
   }
 
   return multipleSelection

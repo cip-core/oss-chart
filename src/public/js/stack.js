@@ -104,6 +104,10 @@ async function createMultipleSelectionList() {
 
   button.onclick = function (event) {
     const selectedCompanies = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
+    const string = new URLSearchParams({
+      companies: selectedCompanies.join(','),
+    }).toString();
+    window.history.pushState({}, '', apiBaseUrl + '?' + string);
     updateGraphs(selectedCompanies)
   }
 
