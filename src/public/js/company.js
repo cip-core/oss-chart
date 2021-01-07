@@ -91,8 +91,9 @@ async function createMultipleSelectionList() {
   }
   let multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
-  const queryStack = getQueryVariable('stack');
-  const queryComponents = getQueryVariable('components');
+  const query = new URLSearchParams(window.location.search)
+  const queryStack = query.get('stack');
+  const queryComponents = query.get('components');
   if (queryStack) {
     try {
       const stackData = await loadStack(queryStack);
@@ -439,17 +440,6 @@ async function callApi(method, url, data) {
   }
 
   return response.json(); // parses JSON response into native JavaScript objects
-}
-
-function getQueryVariable(variable) {
-  const query = window.location.search.substring(1);
-  const vars = query.split('&');
-  for (let i = 0; i < vars.length; i++) {
-    const pair = vars[i].split('=');
-    if (decodeURIComponent(pair[0]) === variable) {
-      return decodeURIComponent(pair[1]);
-    }
-  }
 }
 
 function createLoading() {
