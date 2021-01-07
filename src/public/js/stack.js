@@ -1,16 +1,6 @@
 const apiBaseUrl = window.location.href.split('?')[0]
 
-const defaultCompanies = [
-  'Google',
-  'Microsoft',
-  'IBM',
-  'Red Hat',
-  'Mirantis',
-  'Docker',
-  'VMware',
-  'Pivotal',
-  'Independent'
-]
+let defaultCompanies;
 const times = [
   {
     short: 'w',
@@ -92,6 +82,13 @@ async function createMultipleSelectionList() {
   }
   let multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
+  const queryCompanies = getQueryVariable('companies');
+  if (queryCompanies) {
+    defaultCompanies = queryCompanies.split(',');
+  } else {
+    defaultCompanies = [];
+  }
+
   const companies = await loadCompanies()
   for (const company of companies) {
     const option = document.createElement('option')
@@ -101,6 +98,7 @@ async function createMultipleSelectionList() {
   }
 
   multipleSelection.destroy()
+  delete selectionOptions.placeHolder;
   multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
   button.onclick = function (event) {
@@ -418,6 +416,17 @@ async function callApi(method, url, data) {
   }
 
   return response.json(); // parses JSON response into native JavaScript objects
+}
+
+function getQueryVariable(variable) {
+  const query = window.location.search.substring(1);
+  const vars = query.split('&');
+  for (let i = 0; i < vars.length; i++) {
+    const pair = vars[i].split('=');
+    if (decodeURIComponent(pair[0]) === variable) {
+      return decodeURIComponent(pair[1]);
+    }
+  }
 }
 
 function createLoading() {

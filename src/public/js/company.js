@@ -1,9 +1,6 @@
 const apiBaseUrl = window.location.href.split('?')[0]
 
-let defaultComponents = [
-  'k8s',
-  'helm',
-]
+let defaultComponents;
 const times = [
   {
     short: 'w',
@@ -94,14 +91,20 @@ async function createMultipleSelectionList() {
   }
   let multipleSelection = new vanillaSelectBox("#select", selectionOptions);
 
-  const stack = getQueryVariable('stack');
-  if (stack) {
+  const queryStack = getQueryVariable('stack');
+  const queryComponents = getQueryVariable('components');
+  if (queryStack) {
     try {
-      const stackData = await loadStack(stack);
+      const stackData = await loadStack(queryStack);
       defaultComponents = stackData.components;
     } catch (e) {
       defaultComponents = [];
     }
+  } else if (queryComponents) {
+    console.log(queryComponents)
+    defaultComponents = queryComponents.split(',');
+  } else {
+    defaultComponents = [];
   }
 
   const components = await loadComponents()
