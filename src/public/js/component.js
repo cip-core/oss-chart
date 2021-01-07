@@ -58,13 +58,17 @@ function updateGraphs(companies) {
 async function updateGraph(div, metrics, companies) {
   const periods = times.map(t => t.short)
   // Retrieve data from API
-  const data = await postData(`${apiBaseUrl}/${metrics}`, { periods, companies });
-  // Build Chart
-  const svg = buildChart(div, data)
+  const data = await callApi('POST', `${apiBaseUrl}/${metrics}`, { periods, companies });
 
-  // Replace old chart
+  // Remove old chart
   d3.select(div).select('svg').remove()
-  d3.select(div).append(() => svg)
+
+  if (data.rows.length > 0) {
+    // Build Chart
+    const svg = buildChart(div, data)
+    // Put new chart
+    d3.select(div).append(() => svg)
+  }
 }
 
 async function createMultipleSelectionList() {
@@ -107,9 +111,28 @@ async function createMultipleSelectionList() {
   return multipleSelection
 }
 
+function sortByName(a, b) {
+  const aName = a.toLowerCase();
+  const bName = b.toLowerCase();
+
+  if (aName === bName) return 0;
+
+  const aLatin = isLatinLetter(aName[0]);
+  const bLatin = isLatinLetter(bName[0]);
+
+  if (aLatin && !bLatin) return -1;
+  else if (!aLatin && bLatin) return 1;
+
+  return aName < bName ? -1 : 1;
+}
+
+function isLatinLetter(letter) {
+  return letter.toUpperCase() !== letter.toLowerCase()
+}
+
 async function loadCompanies() {
-  const companies = await postData(`${apiBaseUrl}/companies`)
-  //companies.sort() // Sort alphabetically
+  const companies = await callApi('GET', `${window.location.origin}/companies`)
+  companies.sort(sortByName) // Sort alphabetically
 
   return companies
 }
@@ -354,10 +377,10 @@ function dateInterval(dateFrom, dateTo) {
   return (outputString || 'few seconds ') + 'ago';
 }
 
-async function postData(url, data = {}) {
+async function callApi(method, url, data) {
   // Default options are marked with *
-  const response = await fetch(url, {
-    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+  const config = {
+    method: method, // *GET, POST, PUT, DELETE, etc.
     /*
     mode: 'no-cors', // no-cors, *cors, same-origin
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
@@ -376,8 +399,15 @@ async function postData(url, data = {}) {
     redirect: 'follow', // manual, *follow, error
     referrerPolicy: 'strict-origin-when-cross-origin', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
     */
-    body: JSON.stringify(data) // body data type must match "Content-Type" header
-  });
+  };
+
+  if (data) config.body = JSON.stringify(data);
+
+  const response = await fetch(url, config);
+  if (!response.ok) {
+    throw new Error("HTTP status " + response.status);
+  }
+
   return response.json(); // parses JSON response into native JavaScript objects
 }
 

@@ -17,7 +17,7 @@ router.put('/components/:name', updateComponentStack);
 router.delete('/components/:name', deleteComponentStack);
 
 router.get('/:stack', renderPage);
-router.post('/:stack/companies', listCompanies);
+router.get('/:stack/details', getDetails);
 router.post('/:stack/:metrics', officialApi);
 
 async function getComponentStacks(req, res, next) {
@@ -76,7 +76,7 @@ async function renderPage(req, res, next) {
         const url = req.originalUrl.split('?')[0]
         return res.redirect(url)
       }
-      filePath = 'stackCompany.html';
+      filePath = 'company.html';
     } else {
       filePath = 'stack.html';
     }
@@ -103,6 +103,18 @@ async function listCompanies(req, res, next) {
   }
 
   res.statusCode = 404
+  await res.json({message: `Stack "${stackName}" does not exist`});
+}
+
+async function getDetails(req, res, next) {
+  const stackName = req.params.stack;
+
+  const stack = await utils.loadStacks(stackName);
+  if (stack) {
+    return await res.json(stack);
+  }
+
+  res.statusCode = 404;
   await res.json({message: `Stack "${stackName}" does not exist`});
 }
 

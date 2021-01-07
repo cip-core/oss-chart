@@ -11,12 +11,11 @@ const router = express.Router({
 
 router.get('/', getComponents);
 router.get('/:component', renderPage);
-router.post('/:component/companies', listCompanies);
 router.post('/:component/:metrics', officialApi);
 
 async function getComponents(req, res, next) {
   const components = await utils.loadComponents();
-  await res.json(components);
+  await res.json(components.filter(component => component.short !== 'all'));
 }
 
 async function renderPage(req, res, next) {

@@ -3,6 +3,7 @@ const bodyParser = require('body-parser')
 
 const componentRoute = require('./component')
 const stackRoute = require('./stack')
+const companyRoute = require('./company')
 
 const app = express()
 
@@ -28,6 +29,7 @@ async function init() {
   app.use(express.static(__dirname + '/../public'))
   app.use('/components', componentRoute)
   app.use('/stacks', stackRoute)
+  app.use('/companies', companyRoute)
 
   return app
 }
