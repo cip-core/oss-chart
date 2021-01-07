@@ -71,6 +71,10 @@ async function updateGraph(div, metrics, components) {
 }
 
 async function createMultipleSelectionList() {
+  const label = document.createElement('label')
+  label.setAttribute('class', 'selectLabel')
+  label.innerHTML = 'Components :'
+
   const select = document.createElement('select')
   select.setAttribute('id', 'select')
   select.setAttribute('multiple', '')
@@ -80,6 +84,7 @@ async function createMultipleSelectionList() {
   button.innerHTML = 'Update'
 
   const div = document.getElementById('selection')
+  div.append(label)
   div.append(select)
   div.append(button)
 
