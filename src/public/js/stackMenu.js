@@ -158,7 +158,7 @@ function createSelection(parent, id, callback, multiple, placeholder, disabled =
     }
     multipleSelection.destroy();
 
-    if (!disabled) delete selectionOptions.placeHolder;
+    if (!disabled) selectionOptions.placeHolder = 'Select items';
     const localTabindex = multipleSelection.main.getAttribute('tabindex');
     multipleSelection = new vanillaSelectBox(`#${id}`, selectionOptions);
     multipleSelection.responseValues = values;
@@ -172,6 +172,7 @@ function createSelection(parent, id, callback, multiple, placeholder, disabled =
     pointer.selection = multipleSelection;
   });
 
+  Array.from(multipleSelection.main.getElementsByTagName('button')).map(button => button.setAttribute('type', 'button'));
   multipleSelection.main.setAttribute('tabindex', tabindex.toString());
   tabindex++;
 
