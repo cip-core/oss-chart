@@ -79,7 +79,7 @@ li.disabled{
 	text-align: left;
 	z-index: 1;
 	color: #333;
-	background: white !important;
+	background: inherit;
 	border: 1px solid #999 !important;
 	line-height:20px;
 	font-size:14px;

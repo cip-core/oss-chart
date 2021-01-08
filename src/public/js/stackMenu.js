@@ -1,5 +1,6 @@
 const apiBaseUrl = window.location.origin;
 
+let stacks;
 let tabindex = 1;
 
 async function callApi(method, url, headers = {}, data) {
@@ -71,7 +72,8 @@ async function loadComponents() {
 }
 
 async function loadComponentStacks() {
-  return await callApi('GET', apiBaseUrl + '/stacks/components');
+  stacks = await callApi('GET', apiBaseUrl + '/stacks/components');
+  return stacks;
 }
 
 function appendElement(parent, tagName, attributes = {}) {
@@ -89,9 +91,13 @@ function resetPage() {
 }
 
 const title1 = appendElement(document.body, 'h2');
-title1.innerHTML = 'Components';
+title1.innerHTML = 'Components stack';
 
-const componentsButtonsGrid = appendElement(document.body, 'div', {
+const mainGrid1 = appendElement(document.body, 'div', {
+  class: 'mainGrid',
+});
+
+const componentsButtonsGrid = appendElement(mainGrid1, 'div', {
   class: 'buttonsGrid',
 });
 
@@ -104,8 +110,47 @@ editButton.innerHTML = 'Edit';
 const deleteButton = appendElement(componentsButtonsGrid, 'button');
 deleteButton.innerHTML = 'Delete';
 
+const stacksList = appendElement(mainGrid1, 'div', {
+  class: 'stacksList',
+});
+
+const stackLabel = appendElement(stacksList, 'label', {
+  class: 'listLabel',
+});
+stackLabel.innerHTML = 'View stack :';
+
+const pointer = createSelection(stacksList, 'stackSelect', loadComponentStacks, false, 'Loading...');
+
+const itemsGrid = appendElement(mainGrid1, 'div', {
+  class: 'itemsGrid',
+});
+itemsGrid.style.display = 'none';
+
+const itemsLabel = appendElement(itemsGrid, 'label', {
+  class: 'listLabel',
+});
+itemsLabel.style.paddingTop = '2px';
+itemsLabel.innerHTML = 'Items :';
+
+const itemsList = appendElement(itemsGrid, 'ul', {
+  class: 'itemsList',
+});
+
+pointer.selection.main.lastElementChild.onclick = function (event) {
+  const selected = getSelectedItems(pointer.selection)[0]
+  if (selected) {
+    const stack = stacks.filter(s => s.short === selected)[0];
+    itemsList.innerHTML = '';
+    for (const component of stack.components) {
+      const li = appendElement(itemsList, 'li');
+      li.innerHTML = `${component.svg}<text>${component.name}</text>`;
+    }
+    itemsGrid.style.display = 'grid';
+  }
+};
+
 const title2 = appendElement(document.body, 'h2');
-title2.innerHTML = 'Companies';
+title2.innerHTML = 'Companies stack';
 
 const companiesButtonsGrid = appendElement(document.body, 'div', {
   class: 'buttonsGrid',
@@ -158,7 +203,12 @@ function createSelection(parent, id, callback, multiple, placeholder, disabled =
     }
     multipleSelection.destroy();
 
-    if (!disabled) selectionOptions.placeHolder = 'Select items';
+    if (values.length === 0) {
+      disabled = true;
+      selectionOptions.placeHolder = 'No stack found';
+    }
+
+    if (!disabled) selectionOptions.placeHolder = 'Select item';
     const localTabindex = multipleSelection.main.getAttribute('tabindex');
     multipleSelection = new vanillaSelectBox(`#${id}`, selectionOptions);
     multipleSelection.responseValues = values;
