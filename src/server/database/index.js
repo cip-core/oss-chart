@@ -99,7 +99,7 @@ async function deleteFrom(table, conditions = []) {
   const sql = `DELETE FROM ${table} \n` +
     `WHERE ${conditions.join(' AND ')} ;`
   if (shouldLog) logQuery(sql)
-  if (client) return await client.query(sql1 + sql2)
+  if (client) return await client.query(sql)
 }
 
 module.exports = {
