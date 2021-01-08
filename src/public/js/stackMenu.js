@@ -91,7 +91,7 @@ function resetPage() {
 }
 
 const title1 = appendElement(document.body, 'h2');
-title1.innerHTML = 'Components';
+title1.innerHTML = 'Components stack';
 
 const mainGrid1 = appendElement(document.body, 'div', {
   class: 'mainGrid',
@@ -117,13 +117,14 @@ const stacksList = appendElement(mainGrid1, 'div', {
 const stackLabel = appendElement(stacksList, 'label', {
   class: 'listLabel',
 });
-stackLabel.innerHTML = 'Stack :';
+stackLabel.innerHTML = 'View stack :';
 
 const pointer = createSelection(stacksList, 'stackSelect', loadComponentStacks, false, 'Loading...');
 
 const itemsGrid = appendElement(mainGrid1, 'div', {
   class: 'itemsGrid',
 });
+itemsGrid.style.display = 'none';
 
 const itemsLabel = appendElement(itemsGrid, 'label', {
   class: 'listLabel',
@@ -144,11 +145,12 @@ pointer.selection.main.lastElementChild.onclick = function (event) {
       const li = appendElement(itemsList, 'li');
       li.innerHTML = `${component.svg}<text>${component.name}</text>`;
     }
+    itemsGrid.style.display = 'grid';
   }
 };
 
 const title2 = appendElement(document.body, 'h2');
-title2.innerHTML = 'Companies';
+title2.innerHTML = 'Companies stack';
 
 const companiesButtonsGrid = appendElement(document.body, 'div', {
   class: 'buttonsGrid',
@@ -203,7 +205,7 @@ function createSelection(parent, id, callback, multiple, placeholder, disabled =
 
     if (values.length === 0) {
       disabled = true;
-      selectionOptions.placeHolder = 'No item';
+      selectionOptions.placeHolder = 'No stack found';
     }
 
     if (!disabled) selectionOptions.placeHolder = 'Select item';
