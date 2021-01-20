@@ -16,7 +16,6 @@ router.post('/components', createComponentStack);
 router.put('/components/:name', updateComponentStack);
 router.delete('/components/:name', deleteComponentStack);
 
-router.get('/:stack', renderPage);
 router.get('/:stack/details', getDetails);
 router.post('/:stack/:metrics', officialApi);
 
@@ -97,36 +96,6 @@ async function mainPage(req, res, next) {
   const filePath = 'stackMenu.html';
   const html = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
   return await res.send(html);
-}
-
-async function renderPage(req, res, next) {
-  const stackName = req.params.stack;
-
-  const stack = await utils.loadStacks(stackName);
-  if (stack) {
-    const filePath = 'stack.html';
-    const html = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
-    const document = HTMLParser.parse(html);
-    document.querySelector('#stackName').set_content(stack.name);
-    if (stack.svg) document.querySelector('#h1Title').appendChild(stack.svg);
-    if (stack.href) document.querySelector('#stackLink').setAttribute('href', stack.href);
-    return await res.send(document.toString());
-  }
-
-  res.statusCode = 404;
-  await res.json({message: `Stack "${stackName}" does not exist`});
-}
-
-async function listCompanies(req, res, next) {
-  const stackName = req.params.stack
-
-  const stack = await utils.loadStacks(stackName);
-  if (stack) {
-    return await res.json(await utils.loadCompanies())
-  }
-
-  res.statusCode = 404
-  await res.json({message: `Stack "${stackName}" does not exist`});
 }
 
 async function getDetails(req, res, next) {

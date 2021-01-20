@@ -1,54 +1,48 @@
-const apiBaseUrl = window.location.href.split('?')[0]
+const apiBaseUrl = 'https://grafana-chart-dev.apps.c1.ocp.dev.sgcip.com'
 
-let defaultCompanies;
-const times = [
-  {
-    short: 'w',
-    long: 'week',
-  },
-  {
-    short: 'm',
-    long: 'month',
-  },
-  {
-    short: 'q',
-    long: 'quarter',
-  },
-  {
-    short: 'y',
-    long: 'year',
-  },
-  {
-    short: 'y10',
-    long: 'decade',
-  },
-]
-
-createMultipleSelectionList().then(function (dropdown) {
-  // Set selected companies by default
-  dropdown.setValue(defaultCompanies)
-
-  const selectedCompanies = Array.from(dropdown.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
-  updateGraphs(selectedCompanies)
-})
-
-function updateGraphs(companies) {
-  const divs = document.querySelectorAll('div.graph')
-  for (const div of divs) {
-    div.innerHTML = "" // Clear div
-    const loading = createLoading()
-    div.append(loading)
-    const id = div.getAttribute('id')
-    updateGraph(div, id, companies).then(function() {
-      div.removeChild(loading)
-    })
-  }
+function createLoading() {
+  const div = document.createElement('div')
+  div.setAttribute('class', 'lds-ring')
+  for (let i = 0; i < 4; i++) div.append(document.createElement('div'))
+  return div
 }
 
-async function updateGraph(div, metrics, companies) {
-  const periods = times.map(t => t.short)
+async function updateGraph(div, items) {
+  const periods = times.map(t => t.short);
+  const kinds = [
+    {
+      key: 'companies',
+      value: 'data-company',
+      body: 'components',
+    },
+    {
+      key: 'components',
+      value: 'data-component',
+      body: 'components',
+    },
+    {
+      key: 'stacks',
+      value: 'data-stack',
+      body: 'companies',
+    },
+  ];
+
+  const body = {
+    periods,
+  };
+  let kind, item;
+  for (const kindObject of kinds) {
+    item = div.getAttribute(kindObject.value)
+    if (item) {
+      kind = kindObject.key;
+      body[kindObject.body] = items;
+      break;
+    }
+  }
+  const metric = div.getAttribute('data-metric')
+
   // Retrieve data from API
-  const data = await callApi('POST', `${apiBaseUrl}/${metrics}`, { periods, companies });
+  const data = await callApi('POST', `${apiBaseUrl}/${kind}/${item}/${metric}`, body);
 
   // Remove old chart
   d3.select(div).select('svg').remove()
@@ -61,124 +55,38 @@ async function updateGraph(div, metrics, companies) {
   }
 }
 
-async function createMultipleSelectionList() {
-  const label = document.createElement('label')
-  label.setAttribute('class', 'selectLabel')
-  label.innerHTML = 'Companies :'
+async function callApi(method, url, data) {
+  // Default options are marked with *
+  const config = {
+    method: method, // *GET, POST, PUT, DELETE, etc.
+    /*
+    mode: 'no-cors', // no-cors, *cors, same-origin
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: 'same-origin', // include, *same-origin, omit
+    */
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      //'Access-Control-Allow-Origin': '*',
+      //'Connection': 'keep-alive',
+      //'Host': 'k8s.devstats.cncf.io',
+      //'Acept-Encoding': 'gzip, deflate, br',
+      //'USer-Agent': 'PostmanRuntime/7.26.8',
+    },
+    /*
+    redirect: 'follow', // manual, *follow, error
+    referrerPolicy: 'strict-origin-when-cross-origin', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+    */
+  };
 
-  const select = document.createElement('select')
-  select.setAttribute('id', 'select')
-  select.setAttribute('multiple', '')
-  select.setAttribute('size', '1')
+  if (data) config.body = JSON.stringify(data);
 
-  const button = document.createElement('button')
-  button.innerHTML = 'Update'
-
-  const div = document.getElementById('selection')
-  div.append(label)
-  div.append(select)
-  div.append(button)
-
-  const selectionOptions = {
-    search: true,
-    maxHeight: 400,
-    disableSelectAll: true,
-    placeHolder: 'Loading...',
-  }
-  let multipleSelection = new vanillaSelectBox("#select", selectionOptions);
-
-  const query = new URLSearchParams(window.location.search)
-  const queryCompanies = query.get('companies');
-  if (queryCompanies) {
-    defaultCompanies = queryCompanies.split(',');
-  } else {
-    defaultCompanies = [];
+  const response = await fetch(url, config);
+  if (!response.ok) {
+    throw new Error("HTTP status " + response.status);
   }
 
-  const companies = await loadCompanies()
-  for (const company of companies) {
-    const option = document.createElement('option')
-    option.setAttribute('value', company)
-    option.innerHTML = company
-    select.append(option)
-  }
-
-  multipleSelection.destroy()
-  selectionOptions.placeHolder = 'Select item';
-  multipleSelection = new vanillaSelectBox("#select", selectionOptions);
-
-  button.onclick = function (event) {
-    const selectedCompanies = Array.from(multipleSelection.listElements).filter(element => element.className.indexOf('active') !== -1).map(element => element.getAttribute('data-value'))
-    const string = new URLSearchParams({
-      companies: selectedCompanies.join(','),
-    }).toString();
-    window.history.pushState({}, '', apiBaseUrl + '?' + string);
-    updateGraphs(selectedCompanies)
-  }
-
-  return multipleSelection
-}
-
-function sortByName(a, b) {
-  const aName = a.toLowerCase();
-  const bName = b.toLowerCase();
-
-  if (aName === bName) return 0;
-
-  const aLatin = isLatinLetter(aName[0]);
-  const bLatin = isLatinLetter(bName[0]);
-
-  if (aLatin && !bLatin) return -1;
-  else if (!aLatin && bLatin) return 1;
-
-  return aName < bName ? -1 : 1;
-}
-
-function isLatinLetter(letter) {
-  return letter.toUpperCase() !== letter.toLowerCase()
-}
-
-async function loadCompanies() {
-  const companies = await callApi('GET', `${window.location.origin}/companies`)
-  companies.sort(sortByName) // Sort alphabetically
-
-  return companies
-}
-
-function transformPercentage(data, subgroups) {
-  const sums = {}
-  for (const subgroup of subgroups) {
-    for (const company of data) {
-      const sum = sums[subgroup] || 0
-      sums[subgroup] = sum + (company[subgroup] || 0) // count 0 if no value
-    }
-  }
-
-  for (const subgroup of subgroups) {
-    const subgroupTotal = sums[subgroup] || 1 // avoid divide by 0
-    for (const company of data) {
-      company[subgroup] = company[subgroup] || 0 // count 0 if no value
-      const percentage = company[subgroup] / subgroupTotal * 100
-      company[subgroup] = {
-        value: company[subgroup],
-        percentage: Math.round(percentage * 100) / 100,
-      }
-    }
-  }
-
-  return data
-}
-
-function getUpperLimit(data) {
-  let maxPercentage = 0
-  for (const company of data) {
-    for (const object of Object.values(company)) {
-      if (object.percentage && object.percentage > maxPercentage) {
-        maxPercentage = object.percentage
-      }
-    }
-  }
-  return Math.ceil(maxPercentage / 10) * 10
+  return response.json(); // parses JSON response into native JavaScript objects
 }
 
 const tooltip = d3.select("body").append("div")
@@ -256,7 +164,7 @@ function buildChart(parent, data) {
   const chart = svg.append("g")
     .attr("class", "chart")
   chart.selectAll("g")
-    // Enter in data = loop group per group
+  // Enter in data = loop group per group
     .data(data)
     .enter()
     .append("g")
@@ -352,6 +260,42 @@ function buildChart(parent, data) {
   return svg.node()
 }
 
+function transformPercentage(data, subgroups) {
+  const sums = {}
+  for (const subgroup of subgroups) {
+    for (const company of data) {
+      const sum = sums[subgroup] || 0
+      sums[subgroup] = sum + (company[subgroup] || 0) // count 0 if no value
+    }
+  }
+
+  for (const subgroup of subgroups) {
+    const subgroupTotal = sums[subgroup] || 1 // avoid divide by 0
+    for (const company of data) {
+      company[subgroup] = company[subgroup] || 0 // count 0 if no value
+      const percentage = company[subgroup] / subgroupTotal * 100
+      company[subgroup] = {
+        value: company[subgroup],
+        percentage: Math.round(percentage * 100) / 100,
+      }
+    }
+  }
+
+  return data
+}
+
+function getUpperLimit(data) {
+  let maxPercentage = 0
+  for (const company of data) {
+    for (const object of Object.values(company)) {
+      if (object.percentage && object.percentage > maxPercentage) {
+        maxPercentage = object.percentage
+      }
+    }
+  }
+  return Math.ceil(maxPercentage / 10) * 10
+}
+
 function dateInterval(dateFrom, dateTo) {
   const diff = new Date(Math.abs(dateTo - dateFrom));
   const years = diff.getUTCFullYear() - 1970;
@@ -385,43 +329,14 @@ function dateInterval(dateFrom, dateTo) {
   return (outputString || 'few seconds ') + 'ago';
 }
 
-async function callApi(method, url, data) {
-  // Default options are marked with *
-  const config = {
-    method: method, // *GET, POST, PUT, DELETE, etc.
-    /*
-    mode: 'no-cors', // no-cors, *cors, same-origin
-    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: 'same-origin', // include, *same-origin, omit
-    */
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      //'Access-Control-Allow-Origin': '*',
-      //'Connection': 'keep-alive',
-      //'Host': 'k8s.devstats.cncf.io',
-      //'Acept-Encoding': 'gzip, deflate, br',
-      //'USer-Agent': 'PostmanRuntime/7.26.8',
-    },
-    /*
-    redirect: 'follow', // manual, *follow, error
-    referrerPolicy: 'strict-origin-when-cross-origin', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-    */
-  };
-
-  if (data) config.body = JSON.stringify(data);
-
-  const response = await fetch(url, config);
-  if (!response.ok) {
-    throw new Error("HTTP status " + response.status);
+function updateGraphs(items) {
+  const divs = document.querySelectorAll('div.graph')
+  for (const div of divs) {
+    div.innerHTML = "" // Clear div
+    const loading = createLoading()
+    div.append(loading)
+    updateGraph(div, items).then(function() {
+      div.removeChild(loading)
+    })
   }
-
-  return response.json(); // parses JSON response into native JavaScript objects
-}
-
-function createLoading() {
-  const div = document.createElement('div')
-  div.setAttribute('class', 'lds-ring')
-  for (let i = 0; i < 4; i++) div.append(document.createElement('div'))
-  return div
 }
