@@ -18,7 +18,7 @@ async function updateGraph(div, items) {
     {
       key: 'components',
       value: 'data-component',
-      body: 'components',
+      body: 'companies',
     },
     {
       key: 'stacks',
