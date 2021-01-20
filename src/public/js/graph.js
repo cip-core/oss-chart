@@ -9,37 +9,19 @@ function createLoading() {
 
 async function updateGraph(div, items) {
   const periods = times.map(t => t.short);
-  const kinds = [
-    {
-      key: 'companies',
-      value: 'data-company',
-      body: 'components',
-    },
-    {
-      key: 'components',
-      value: 'data-component',
-      body: 'companies',
-    },
-    {
-      key: 'stacks',
-      value: 'data-stack',
-      body: 'companies',
-    },
-  ];
+  const kinds = {
+    companies: 'components',
+    components: 'companies',
+    stacks: 'companies',
+  };
 
+  const kind = div.getAttribute('data-kind');
+  const item = div.getAttribute('data-name');
+  const metric = div.getAttribute('data-metric')
   const body = {
     periods,
   };
-  let kind, item;
-  for (const kindObject of kinds) {
-    item = div.getAttribute(kindObject.value)
-    if (item) {
-      kind = kindObject.key;
-      body[kindObject.body] = items;
-      break;
-    }
-  }
-  const metric = div.getAttribute('data-metric')
+  body[kinds[kind]] = items;
 
   // Retrieve data from API
   const data = await callApi('POST', `${apiBaseUrl}/${kind}/${item}/${metric}`, body);
