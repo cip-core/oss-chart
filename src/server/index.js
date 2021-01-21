@@ -1,3 +1,5 @@
+const fs = require('fs')
+const path = require('path')
 const express = require('express')
 const bodyParser = require('body-parser')
 
@@ -21,12 +23,19 @@ async function init() {
   app.use(cors)
   app.use(preprocessRequest)
   app.use(logRequest)
+  app.get('/graph/script.js', loadScript)
   app.use(express.static(__dirname + '/../public'))
   app.use('/components', componentRoute)
   app.use('/stacks', stackRoute)
   app.use('/companies', companyRoute)
 
   return app
+}
+
+async function loadScript(req, res, next) {
+  const filePath = '/../public' + req.originalUrl
+  const file = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
+  await res.send(file.replace(/%%API_BASE_URL%%/g, req.headers.host))
 }
 
 async function initDatabase() {

@@ -1,4 +1,4 @@
-const apiBaseUrl = 'https://grafana-chart-dev.apps.c1.ocp.dev.sgcip.com'
+const apiBaseUrl = '%%API_BASE_URL%%'
 const times = [
   {
     short: 'w',
