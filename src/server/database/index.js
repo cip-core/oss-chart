@@ -53,10 +53,11 @@ async function dropTables() {
   if (client) return await client.query(sql);
 }
 
-async function selectFrom(table, columns, where) {
+async function selectFrom(table, columns, where = []) {
   const sql = `SELECT ${columns.join(', ')} \n` +
     `FROM ${table} \n` +
-    `WHERE ${where.join(' AND \n')};`
+    (where.length > 0 ? `WHERE ${where.join(' AND \n')}` : '') +
+    ';'
   if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql)
 }
@@ -90,14 +91,16 @@ async function upsert(table, columns = [], rows = []) {
 async function update(table, values = {}, conditions = []) {
   const sql = `UPDATE ${table} \n` +
     `SET ${Object.entries(values).map(entry => `${entry[0]} = ${entry[1]}`).join(',\n')} \n` +
-    `WHERE ${conditions.join(' AND ')} ;`
+    (conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '') +
+    ';'
   if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql)
 }
 
 async function deleteFrom(table, conditions = []) {
   const sql = `DELETE FROM ${table} \n` +
-    `WHERE ${conditions.join(' AND ')} ;`
+    (conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '') +
+    ';'
   if (shouldLog) logQuery(sql)
   if (client) return await client.query(sql)
 }
