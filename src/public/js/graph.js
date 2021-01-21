@@ -40,19 +40,20 @@ async function updateGraph(div) {
   const kind = div.getAttribute('data-kind');
 
   const expectedData = kinds[kind];
+  const body = {}
+
   const periods = div.getAttribute('data-periods');
-  const body = {
-    periods,
-  };
+  if (periods) body.periods = periods.split(',');
+
   if (!expectedData) return;
   else if (expectedData === 'components') {
     const stack = div.getAttribute('data-stack');
     const components = div.getAttribute('data-components');
     if (stack) body.stack = stack
-    else if (components) body.components = components
+    else if (components) body.components = components.split(',')
   } else {
     const companies = div.getAttribute('data-companies');
-    if (companies) body.companies = companies
+    if (companies) body.companies = companies.split(',')
   }
   const metric = div.getAttribute('data-metric');
 
