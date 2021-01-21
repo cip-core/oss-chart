@@ -29,21 +29,32 @@ function createLoading() {
   return div
 }
 
-async function updateGraph(div, items) {
-  const periods = times.map(t => t.short);
+async function updateGraph(div) {
   const kinds = {
     companies: 'components',
     components: 'companies',
     stacks: 'companies',
   };
 
-  const kind = div.getAttribute('data-kind');
   const item = div.getAttribute('data-name');
-  const metric = div.getAttribute('data-metric')
+  const kind = div.getAttribute('data-kind');
+
+  const expectedData = kinds[kind];
+  const periods = div.getAttribute('data-periods');
   const body = {
     periods,
   };
-  body[kinds[kind]] = items;
+  if (!expectedData) return;
+  else if (expectedData === 'components') {
+    const stack = div.getAttribute('data-stack');
+    const components = div.getAttribute('data-components');
+    if (stack) body.stack = stack
+    else if (components) body.components = components
+  } else {
+    const companies = div.getAttribute('data-companies');
+    if (companies) body.companies = companies
+  }
+  const metric = div.getAttribute('data-metric');
 
   // Retrieve data from API
   const response = await callApi('POST', `${apiBaseUrl}/${kind}/${item}/${metric}`, body);
@@ -53,7 +64,7 @@ async function updateGraph(div, items) {
 
   if (response.data.rows.length > 0) {
     // Build Chart
-    const svg = buildChart(div, response.data)
+    const svg = buildChart(div, response.data, times.filter(t => periods.indexOf(t.short) !== -1))
     // Put new chart
     d3.select(div).append(() => svg)
   }
@@ -97,14 +108,14 @@ const tooltip = d3.select("body").append("div")
   .attr("class", "tooltip")
   .style("opacity", 0);
 
-function buildChart(parent, data) {
+function buildChart(parent, data, periods) {
   var columns = data.columns
   data = data.rows
 
   // List of subgroups = header of the csv files = soil condition here
   var subgroups = columns.slice(1)
   // Sort columns according to "times" list
-  const shortTimes = times.map(t => t.short)
+  const shortTimes = periods.map(t => t.short)
   subgroups.sort(function(a, b) {
     return shortTimes.indexOf(a) < shortTimes.indexOf(b) ? 1 : -1
   })
@@ -191,7 +202,7 @@ function buildChart(parent, data) {
       tooltip.transition()
         .duration(200)
         .style("opacity", .9);
-      const time = times.filter(o => o.short === d.key)[0]
+      const time = periods.filter(o => o.short === d.key)[0]
       tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br><i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i>`)
         .style("left", (d3.event.pageX) + "px")
         .style("top", (d3.event.pageY - 28) + "px");
@@ -232,7 +243,7 @@ function buildChart(parent, data) {
     .attr("y", function(d,i){ return 0 + i * (size + spaceBetween) + (size / 2)}) // 0 is where the first dot appears. 5 is the distance between dots
     .style("fill", function(d){ return color(d)})
     .text(function(d){
-      const time = times.filter(o => o.short === d)[0]
+      const time = periods.filter(o => o.short === d)[0]
       return time.long[0].toUpperCase() + time.long.slice(1)
     })
     .attr("text-anchor", "left")
@@ -333,13 +344,13 @@ function dateInterval(dateFrom, dateTo) {
   return (outputString || 'few seconds ') + 'ago';
 }
 
-function updateGraphs(items) {
+function updateGraphs() {
   const divs = document.querySelectorAll('div.graph')
   for (const div of divs) {
     div.innerHTML = "" // Clear div
     const loading = createLoading()
     div.append(loading)
-    updateGraph(div, items).then(function() {
+    updateGraph(div).finally(function() {
       div.removeChild(loading)
     })
   }
