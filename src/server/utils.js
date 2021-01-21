@@ -250,6 +250,7 @@ async function saveCompanyStacksToDatabase(data) {
     [
       'id',
       'parent',
+      'name',
       'child',
     ],
     data,
@@ -268,7 +269,8 @@ async function saveComponentStacksToDatabase(stack) {
   const data = []
   for (const component of stack.components) {
     data.push([
-      stackKey,
+      stackKey || '',
+      stack.name || '',
       component,
     ])
   }
@@ -283,6 +285,7 @@ async function saveComponentStacksToDatabase(stack) {
     [
       'id',
       'parent',
+      'name',
       'child',
     ],
     data,
@@ -416,6 +419,10 @@ function transformComponents(components) {
     value.href = key;
     return value;
   });
+}
+
+function setStacksLocalCache(cache) {
+  Object.assign(stacksLocalCache, cache)
 }
 
 module.exports = {
