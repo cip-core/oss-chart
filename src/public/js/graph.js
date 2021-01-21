@@ -24,14 +24,14 @@ async function updateGraph(div, items) {
   body[kinds[kind]] = items;
 
   // Retrieve data from API
-  const data = await callApi('POST', `${apiBaseUrl}/${kind}/${item}/${metric}`, body);
+  const response = await callApi('POST', `${apiBaseUrl}/${kind}/${item}/${metric}`, body);
 
   // Remove old chart
   d3.select(div).select('svg').remove()
 
-  if (data.rows.length > 0) {
+  if (response.data.rows.length > 0) {
     // Build Chart
-    const svg = buildChart(div, data)
+    const svg = buildChart(div, response.data)
     // Put new chart
     d3.select(div).append(() => svg)
   }

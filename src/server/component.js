@@ -20,12 +20,12 @@ async function officialApi(req, res, next) {
 
   const { periods, companies } = req.body;
 
-  let response = undefined;
+  let response = {};
   try {
     const components = await utils.loadComponents();
     for (const c of components) {
       if (c.short === component) {
-        response = await utils.loadData(
+        response.data = await utils.loadData(
           component,
           metrics,
           periods,

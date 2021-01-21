@@ -56,7 +56,7 @@ async function officialApi(req, res, next) {
     }
     response.columns = response.columns.filter((value, index, self) => self.indexOf(value) === index);
 
-    return await res.json(response);
+    return await res.json({ data: response });
   } catch (e) {
     console.error(e)
     const response = e.response;
