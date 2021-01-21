@@ -35,7 +35,7 @@ async function init() {
 async function loadScript(req, res, next) {
   const filePath = '/../public' + req.originalUrl
   const file = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
-  await res.send(file.replace(/%%API_BASE_URL%%/g, req.headers.host))
+  await res.send(file.replace(/%%API_BASE_URL%%/g, `${req.protocol}://${req.headers.host}`))
 }
 
 async function initDatabase() {
