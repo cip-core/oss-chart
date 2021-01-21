@@ -1,4 +1,26 @@
 const apiBaseUrl = 'https://grafana-chart-dev.apps.c1.ocp.dev.sgcip.com'
+const times = [
+  {
+    short: 'w',
+    long: 'week',
+  },
+  {
+    short: 'm',
+    long: 'month',
+  },
+  {
+    short: 'q',
+    long: 'quarter',
+  },
+  {
+    short: 'y',
+    long: 'year',
+  },
+  {
+    short: 'y10',
+    long: 'decade',
+  },
+];
 
 function createLoading() {
   const div = document.createElement('div')
