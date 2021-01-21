@@ -433,4 +433,5 @@ module.exports = {
   saveComponentStacksToDatabase,
   getComponentStacks,
   deleteComponentStackFromDatabase,
+  setStacksLocalCache,
 };

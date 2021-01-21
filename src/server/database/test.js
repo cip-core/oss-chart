@@ -34,11 +34,13 @@ async function test() {
     console.log(await selectFrom('company_stacks', [
       'id',
       'parent',
+      'name',
       'child',
     ]))
     console.log(await selectFrom('component_stacks', [
       'id',
       'parent',
+      'name',
       'child',
     ]))
   } catch (e) {
