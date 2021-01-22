@@ -49,8 +49,8 @@ async function updateGraph(div) {
   else if (expectedData === 'components') {
     const stack = div.getAttribute('data-stack');
     const components = div.getAttribute('data-components');
-    if (stack) body.stack = stack
-    else if (components) body.components = components.split(',')
+    if (components) body.components = components.split(',')
+    else if (stack) body.stack = stack
   } else {
     const companies = div.getAttribute('data-companies');
     if (companies) body.companies = companies.split(',')
