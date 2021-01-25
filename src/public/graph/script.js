@@ -29,7 +29,7 @@ function createLoading() {
   return div
 }
 
-async function updateGraph(div) {
+async function updateGraph(div, tooltip) {
   const kinds = {
     companies: 'components',
     components: 'companies',
@@ -65,7 +65,7 @@ async function updateGraph(div) {
 
   if (response.data.rows.length > 0) {
     // Build Chart
-    const svg = buildChart(div, response.data, times.filter(t => periods.indexOf(t.short) !== -1))
+    const svg = buildChart(div, response.data, times.filter(t => periods.indexOf(t.short) !== -1), tooltip)
     // Put new chart
     d3.select(div).append(() => svg)
   }
@@ -105,11 +105,7 @@ async function callApi(method, url, data) {
   return response.json(); // parses JSON response into native JavaScript objects
 }
 
-const tooltip = d3.select("body").append("div")
-  .attr("class", "tooltip")
-  .style("opacity", 0);
-
-function buildChart(parent, data, periods) {
+function buildChart(parent, data, periods, tooltip) {
   var columns = data.columns
   data = data.rows
 
@@ -346,12 +342,19 @@ function dateInterval(dateFrom, dateTo) {
 }
 
 function updateGraphs() {
+  let tooltip = d3.select("#graphTooltip");
+  if (!tooltip) {
+    tooltip = d3.select("body").append("div")
+      .attr("id", "graphTooltip")
+      .attr("class", "tooltip")
+      .style("opacity", 0);
+  }
   const divs = document.querySelectorAll('div.graph')
   for (const div of divs) {
     div.innerHTML = "" // Clear div
     const loading = createLoading()
     div.append(loading)
-    updateGraph(div).finally(function() {
+    updateGraph(div, tooltip).finally(function() {
       div.removeChild(loading)
     })
   }
