@@ -343,7 +343,7 @@ function dateInterval(dateFrom, dateTo) {
 
 function updateGraphs() {
   let tooltip = d3.select("#graphTooltip");
-  if (!tooltip) {
+  if (tooltip.empty()) {
     tooltip = d3.select("body").append("div")
       .attr("id", "graphTooltip")
       .attr("class", "tooltip")
