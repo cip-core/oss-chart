@@ -196,11 +196,15 @@ function buildChart(parent, data, periods, tooltip) {
     })
     .enter().append("rect")
     .on("mouseover", function(d) {
+      d3.select(this).style("cursor", "pointer")
       tooltip.transition()
         .duration(200)
         .style("opacity", .9);
       const time = periods.filter(o => o.short === d.key)[0]
-      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br><i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i>`)
+      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
+        + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
+        + `Click for more details`
+      )
         .style("left", (d3.event.pageX) + "px")
         .style("top", (d3.event.pageY - 28) + "px");
     })
@@ -208,6 +212,13 @@ function buildChart(parent, data, periods, tooltip) {
       tooltip.transition()
         .duration(500)
         .style("opacity", 0);
+    })
+    .on("click", function(d) {
+      const pathArray = window.location.pathname.split('/')
+      const stack = pathArray.slice(0, pathArray.length - 1)
+      const endUrl = `/${parent.getAttribute('data-kind')}`
+      console.log(d) // TODO : debug
+      window.location.href = window.location.origin + stack.join('/') + endUrl
     })
     .attr("x", function(d) { return xSubgroup(d.key); })
     .attr("y", function(d) { return y(d.percentage); })
