@@ -29,17 +29,21 @@ function createLoading() {
   return div
 }
 
-async function updateGraph(div, tooltip) {
+function getExceptedKind(kind) {
   const kinds = {
     companies: 'components',
     components: 'companies',
     stacks: 'companies',
   };
 
+  return kinds[kind];
+}
+
+async function updateGraph(div, tooltip) {
   const item = div.getAttribute('data-name');
   const kind = div.getAttribute('data-kind');
 
-  const expectedData = kinds[kind];
+  const expectedData = getExceptedKind(kind);
   const body = {}
 
   const periods = div.getAttribute('data-periods');
@@ -183,17 +187,15 @@ function buildChart(parent, data, periods, tooltip) {
     .attr("transform", function(d) { return `translate(${x(d[columns[0]]) + margin.left}, ${margin.top})`; })
     .selectAll("rect")
     .data(function(d) {
-      console.log('d')
-      console.log(d)
       return subgroups.map(function(key) {
         const subgroupValue = d[key]
-        console.log('subgroupValue')
-        console.log(subgroupValue)
         return {
           key: key,
           value: subgroupValue.value,
           percentage: subgroupValue.percentage,
           updatedAt: d.updatedAt,
+          name: d.name,
+          short: d.short,
           isLast: d[columns[0]] === groups[groups.length - 1],
         };
       });
@@ -220,8 +222,12 @@ function buildChart(parent, data, periods, tooltip) {
     .on("click", function(d) {
       const pathArray = window.location.pathname.split('/')
       const stack = pathArray.slice(0, pathArray.length - 1)
-      const endUrl = `/${parent.getAttribute('data-kind')}`
-      console.log(d) // TODO : debug
+      const currentKind = parent.getAttribute('data-kind')
+      const exceptedKind = getExceptedKind(currentKind)
+      const query = {}
+      query['dataName'] = d.short || d.name
+      query[currentKind] = parent.getAttribute('data-name')
+      const endUrl = `/${exceptedKind}?${new URLSearchParams(query).toString()}`
       window.location.href = window.location.origin + stack.join('/') + endUrl
     })
     .attr("x", function(d) { return xSubgroup(d.key); })
