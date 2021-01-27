@@ -29,6 +29,13 @@ function createLoading() {
   return div
 }
 
+function createErrorMessage(text) {
+  const element = document.createElement('text')
+  element.setAttribute('class', 'graphErrorMessage')
+  element.innerHTML = text
+  return element
+}
+
 function getExceptedKind(kind) {
   const kinds = {
     companies: 'components',
@@ -376,7 +383,7 @@ function updateGraphs() {
     const loading = createLoading()
     div.append(loading)
     updateGraph(div, tooltip).catch(function(e) {
-      console.error(`Error with message "${e.message}"`)
+      div.append(createErrorMessage(e.message))
       console.error(e)
     }).finally(function() {
       div.removeChild(loading)
