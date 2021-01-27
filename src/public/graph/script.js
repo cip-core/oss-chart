@@ -62,7 +62,7 @@ async function updateGraph(div, tooltip) {
   const metric = div.getAttribute('data-metric');
 
   // Retrieve data from API
-  const response = await callApi('POST', `${apiBaseUrl}/${kind}/${item}/${metric}`, body);
+  const response = await callApi('POST', `${apiBaseUrl}/${kind === 'stack' ? 'stacks' : kind}/${item}/${metric}`, body);
 
   // Remove old chart
   d3.select(div).select('svg').remove()
