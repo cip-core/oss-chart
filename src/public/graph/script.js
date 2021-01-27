@@ -49,7 +49,7 @@ async function updateGraph(div, tooltip) {
   const periods = div.getAttribute('data-periods');
   if (periods) body.periods = periods.split(',');
 
-  if (!expectedData) return;
+  if (!expectedData) throw new TypeError(`data-kind "${kind}" is not recognized`);
   else if (expectedData === 'components') {
     const stack = div.getAttribute('data-stack');
     const components = div.getAttribute('data-components');
@@ -375,7 +375,10 @@ function updateGraphs() {
     div.innerHTML = "" // Clear div
     const loading = createLoading()
     div.append(loading)
-    updateGraph(div, tooltip).finally(function() {
+    updateGraph(div, tooltip).catch(function(e) {
+      console.error(`Error with message "${e.message}"`)
+      console.error(e)
+    }).finally(function() {
       div.removeChild(loading)
     })
   }
