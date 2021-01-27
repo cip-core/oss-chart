@@ -18,6 +18,10 @@ div.tooltip {
     pointer-events: none;
 }
 
+.graphErrorMessage {
+    color: red;
+}
+
 /*
  Loading animation
  */
