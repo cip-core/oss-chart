@@ -183,8 +183,12 @@ function buildChart(parent, data, periods, tooltip) {
     .attr("transform", function(d) { return `translate(${x(d[columns[0]]) + margin.left}, ${margin.top})`; })
     .selectAll("rect")
     .data(function(d) {
+      console.log('d')
+      console.log(d)
       return subgroups.map(function(key) {
         const subgroupValue = d[key]
+        console.log('subgroupValue')
+        console.log(subgroupValue)
         return {
           key: key,
           value: subgroupValue.value,
