@@ -33,7 +33,7 @@ function getExceptedKind(kind) {
   const kinds = {
     companies: 'components',
     components: 'companies',
-    stacks: 'companies',
+    stack: 'companies',
   };
 
   return kinds[kind];
