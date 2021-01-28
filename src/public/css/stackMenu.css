@@ -65,9 +65,16 @@ body {
 }
 
 .mainForm {
-    width: 50vw;
+    width: 50%;
     display: grid;
     grid-row-gap: .5em;
+}
+
+@media only screen and (max-width: 768px) {
+    /* Mobile devices */
+    .mainForm {
+        width: 100%;
+    }
 }
 
 .subGrid {

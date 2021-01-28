@@ -101,7 +101,7 @@ li.disabled{
 }
 
 .vsb-main ul{
-	white-space: nowrap;
+	white-space: inherit;
 }
 
 .vsb-menu li {
