@@ -156,8 +156,8 @@ async function officialApi(req, res, next) {
     await res.json({message: `Stack "${stackName}" does not exist`});
   } catch (e) {
     console.error(e)
-    res.statusCode = 500;
-    res.statusText = 'Error';
+    res.statusCode = e.response ? e.response.status : 500;
+    res.statusText = e.response ? e.response.statusText : 'Error';
     await res.json(e);
   }
 }
