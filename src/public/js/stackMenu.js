@@ -299,7 +299,7 @@ createButton.onclick = function (event) {
       });
       if (response.data) {
         resultClass = 'good';
-        resultMessage = `Your stack <b>${response.name}</b> has been successfully created with identifier "${response.short}". Check it out`;
+        resultMessage = `Your stack <b>${response.name}</b> has been successfully created with identifier "${response.short}"`;
       } else {
         resultClass = 'info';
         resultMessage = `Your stack <b>${response.name}</b> has been locally created with identifier "${response.short}" but has failed to save it to database. This action will not persist in time`;
@@ -360,7 +360,7 @@ editButton.onclick = function (event) {
       });
       if (response.data) {
         resultClass = 'good';
-        resultMessage = `Your stack <b>${response.name}</b> has been edited. Check it out`;
+        resultMessage = `Your stack <b>${response.name}</b> has been edited`;
       } else {
         resultClass = 'info';
         resultMessage = `Your stack <b>${response.name}</b> has been locally edited but has failed to save it to database. This action will not persist in time`;
