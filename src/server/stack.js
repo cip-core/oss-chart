@@ -21,10 +21,10 @@ router.post('/:stack/:metrics', officialApi);
 
 async function getComponentStacks(req, res, next) {
   const components = await utils.loadComponents();
-  const stacks = await utils.getComponentStacks();
+  const stacks = JSON.parse(JSON.stringify(await utils.getComponentStacks()));
   for (const stack of stacks) {
     stack.components = stack.components.map(function (short) {
-      if (short.short) return short;
+      // Map detailed stack object from short ID
       return components.filter(component => component.short === short)[0];
     })
   }
@@ -158,6 +158,7 @@ async function officialApi(req, res, next) {
     console.error(e)
     res.statusCode = 500;
     res.statusText = 'Error';
+    await res.json({message: e.message});
   }
 }
 
