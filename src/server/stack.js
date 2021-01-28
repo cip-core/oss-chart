@@ -47,7 +47,12 @@ async function createComponentStack(req, res, next) {
       name,
       components,
     });
-    await res.json(response);
+    await res.json({
+      short,
+      name,
+      components,
+      data: response,
+    });
   }
 
   if (errorMessage) {

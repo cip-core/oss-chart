@@ -264,6 +264,9 @@ createButton.onclick = function (event) {
 
   const submit = createSubmitButton(mainForm);
   submit.onclick = async function (event) {
+    const resultDiv = document.getElementById('result');
+    if (resultDiv) resultDiv.remove();
+
     const stackName = input.value;
     if (!stackName) {
       return;
@@ -272,11 +275,36 @@ createButton.onclick = function (event) {
     if (components.length === 0) {
       return;
     }
-    const response = await callApi('POST', apiBaseUrl + '/stacks/components', {}, {
-      name: stackName,
-      components: components,
-    });
-    console.log(response);
+
+    let resultMessage = '';
+    let resultClass = '';
+    try {
+      const response = await callApi('POST', apiBaseUrl + '/stacks/components', {}, {
+        name: stackName,
+        components: components,
+      });
+      console.log(response);
+      if (response.data) {
+        resultClass = 'good';
+        resultMessage = `Your stack <g>${response.name}</g> has been successfully created with identifier "${response.short}". Check it out`;
+      } else {
+        resultClass = 'info';
+        resultMessage = `Your stack <g>${response.name}</g> has been successfully created with identifier "${response.short}" but has failed to save it to database`;
+      }
+    } catch (e) {
+      resultClass = 'bad';
+      resultMessage = 'Error when creating stack';
+    } finally {
+      const resultDiv = appendElement(mainForm, 'div', {
+        class: 'resultDiv',
+        id: 'result',
+      });
+      appendElement(resultDiv, 'div', {
+        class: `icon ${resultClass}`,
+      });
+      const text = appendElement(resultDiv, 'text', {});
+      text.innerHTML = resultMessage;
+    }
   };
 };
 
