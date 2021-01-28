@@ -369,7 +369,7 @@ function dateInterval(dateFrom, dateTo) {
   return (outputString || 'few seconds ') + 'ago';
 }
 
-function updateGraphs() {
+function updateGraphs(keepComment = false) {
   let tooltip = d3.select("#graphTooltip");
   if (tooltip.empty()) {
     tooltip = d3.select("body").append("div")
@@ -379,7 +379,12 @@ function updateGraphs() {
   }
   const divs = document.querySelectorAll('div.graph')
   for (const div of divs) {
-    div.innerHTML = "" // Clear div
+    if (keepComment) {
+      const svg = div.querySelector('svg')
+      if (svg) svg.remove()
+    } else {
+      div.innerHTML = "" // Clear div
+    }
     const loading = createLoading()
     div.append(loading)
     updateGraph(div, tooltip).catch(function(e) {
