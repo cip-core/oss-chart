@@ -158,7 +158,7 @@ async function officialApi(req, res, next) {
     console.error(e)
     res.statusCode = 500;
     res.statusText = 'Error';
-    await res.json({message: e.message});
+    await res.json(e);
   }
 }
 
