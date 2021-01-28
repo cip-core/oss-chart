@@ -126,7 +126,7 @@ async function officialApi(req, res, next) {
       let columns = []
 
       for (const component of response.components) {
-        const data = Object.assign({}, await utils.loadData(component.short, metrics, periods, companies))
+        const data = Object.assign({}, await utils.loadData(component, metrics, periods, companies))
         columns = data.data.columns
 
         for (const column of columns.slice(1)) {
