@@ -72,7 +72,7 @@ async function updateComponentStack(req, res, next) {
       name: stack.name,
       components,
     };
-    body.data = await utils.saveComponentStacksToDatabase();
+    body.data = await utils.saveComponentStacksToDatabase(body);
     await res.json(body);
   }
 
