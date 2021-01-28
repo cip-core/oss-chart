@@ -243,6 +243,14 @@ function createSubmitButton(parent, text) {
   return button;
 }
 
+function createLoading() {
+  const div = document.createElement('div')
+  div.setAttribute('class', 'lds-ring')
+  div.style.justifySelf = 'center';
+  for (let i = 0; i < 4; i++) div.append(document.createElement('div'))
+  return div
+}
+
 function appendIconMessage(parent, iconClass, message) {
   const resultDiv = appendElement(parent, 'div', {
     class: 'resultDiv',
@@ -283,12 +291,17 @@ createButton.onclick = function (event) {
 
     const stackName = input.value;
     if (!stackName) {
+      appendIconMessage(mainForm, 'info', 'Stack name can not be empty');
       return;
     }
     const components = getSelectedItems(selectionPointer.selection);
     if (components.length === 0) {
+      appendIconMessage(mainForm, 'info', 'Please select at least one component');
       return;
     }
+
+    const loading = createLoading();
+    mainForm.append(loading);
 
     let resultMessage = '';
     let resultClass = '';
@@ -308,6 +321,7 @@ createButton.onclick = function (event) {
       resultClass = 'bad';
       resultMessage = 'Error when creating stack';
     } finally {
+      loading.remove();
       appendIconMessage(mainForm, resultClass, resultMessage);
     }
   };
@@ -345,12 +359,17 @@ editButton.onclick = function (event) {
   submit.onclick = async function (event) {
     const stackName = getSelectedItems(stackSelectionPointer.selection)[0];
     if (stackName === undefined) {
+      appendIconMessage(mainForm, 'info', 'Please select a stack to edit');
       return;
     }
     const components = getSelectedItems(componentSelectionPointer.selection);
     if (components.length === 0) {
+      appendIconMessage(mainForm, 'info', 'Please select at least one component');
       return;
     }
+
+    const loading = createLoading();
+    mainForm.append(loading);
 
     let resultMessage = '';
     let resultClass = '';
@@ -369,6 +388,7 @@ editButton.onclick = function (event) {
       resultClass = 'bad';
       resultMessage = 'Error when editing stack';
     } finally {
+      loading.remove();
       appendIconMessage(mainForm, resultClass, resultMessage);
     }
   };
@@ -388,8 +408,12 @@ deleteButton.onclick = function (event) {
   submit.onclick = async function (event) {
     const stackName = getSelectedItems(stackSelectionPointer.selection)[0];
     if (stackName === undefined) {
+      appendIconMessage(mainForm, 'info', 'Please select a stack to delete');
       return;
     }
+
+    const loading = createLoading();
+    mainForm.append(loading);
 
     let resultMessage = '';
     let resultClass = '';
@@ -406,6 +430,7 @@ deleteButton.onclick = function (event) {
       resultClass = 'bad';
       resultMessage = 'Error when deleting stack';
     } finally {
+      loading.remove();
       appendIconMessage(mainForm, resultClass, resultMessage);
     }
   };
