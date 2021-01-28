@@ -84,9 +84,13 @@ button#submit {
 }
 
 .resultDiv {
-    justify-self: baseline;
+    justify-self: center;
     width: fit-content;
     display: grid;
     grid-template-columns: min-content auto;
     grid-column-gap: .5em;
+}
+
+.resultDiv > text {
+    align-self: center;
 }
