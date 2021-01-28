@@ -42,17 +42,13 @@ async function createComponentStack(req, res, next) {
     errorMessage = 'Missing "components" parameter'
   } else {
     const short = name.toLowerCase().replace(/ /g, '-');
-    const response = await utils.saveComponentStacksToDatabase({
+    const body = {
       short,
       name,
       components,
-    });
-    await res.json({
-      short,
-      name,
-      components,
-      data: response,
-    });
+    };
+    body.data = await utils.saveComponentStacksToDatabase(body);
+    await res.json(body);
   }
 
   if (errorMessage) {
@@ -71,12 +67,13 @@ async function updateComponentStack(req, res, next) {
     errorMessage = 'Missing "components" parameter'
   } else {
     const stack = await utils.deleteComponentStackFromDatabase(short);
-    const response = await utils.saveComponentStacksToDatabase({
+    const body = {
       short,
       name: stack.name,
       components,
-    });
-    await res.json(response);
+    };
+    body.data = await utils.saveComponentStacksToDatabase();
+    await res.json(body);
   }
 
   if (errorMessage) {

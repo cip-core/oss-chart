@@ -243,6 +243,20 @@ function createSubmitButton(parent, text) {
   return button;
 }
 
+function appendIconMessage(parent, iconClass, message) {
+  const resultDiv = appendElement(parent, 'div', {
+    class: 'resultDiv',
+    id: 'result',
+  });
+  appendElement(resultDiv, 'div', {
+    class: `icon ${iconClass}`,
+  });
+  const text = appendElement(resultDiv, 'text', {});
+  text.innerHTML = message;
+
+  return resultDiv;
+}
+
 createButton.onclick = function (event) {
   resetPage();
 
@@ -283,27 +297,18 @@ createButton.onclick = function (event) {
         name: stackName,
         components: components,
       });
-      console.log(response);
       if (response.data) {
         resultClass = 'good';
-        resultMessage = `Your stack <g>${response.name}</g> has been successfully created with identifier "${response.short}". Check it out`;
+        resultMessage = `Your stack <b>${response.name}</b> has been successfully created with identifier "${response.short}". Check it out`;
       } else {
         resultClass = 'info';
-        resultMessage = `Your stack <g>${response.name}</g> has been successfully created with identifier "${response.short}" but has failed to save it to database`;
+        resultMessage = `Your stack <b>${response.name}</b> has been locally created with identifier "${response.short}" but has failed to save it to database. This action will not persist in time`;
       }
     } catch (e) {
       resultClass = 'bad';
       resultMessage = 'Error when creating stack';
     } finally {
-      const resultDiv = appendElement(mainForm, 'div', {
-        class: 'resultDiv',
-        id: 'result',
-      });
-      appendElement(resultDiv, 'div', {
-        class: `icon ${resultClass}`,
-      });
-      const text = appendElement(resultDiv, 'text', {});
-      text.innerHTML = resultMessage;
+      appendIconMessage(mainForm, resultClass, resultMessage);
     }
   };
 };
@@ -346,10 +351,26 @@ editButton.onclick = function (event) {
     if (components.length === 0) {
       return;
     }
-    const response = await callApi('PUT', apiBaseUrl + `/stacks/components/${stackName}`, {}, {
-      components: components,
-    });
-    console.log(response);
+
+    let resultMessage = '';
+    let resultClass = '';
+    try {
+      const response = await callApi('PUT', apiBaseUrl + `/stacks/components/${stackName}`, {}, {
+        components: components,
+      });
+      if (response.data) {
+        resultClass = 'good';
+        resultMessage = `Your stack <b>${response.name}</b> has been edited. Check it out`;
+      } else {
+        resultClass = 'info';
+        resultMessage = `Your stack <b>${response.name}</b> has been locally edited but has failed to save it to database. This action will not persist in time`;
+      }
+    } catch (e) {
+      resultClass = 'bad';
+      resultMessage = 'Error when editing stack';
+    } finally {
+      appendIconMessage(mainForm, resultClass, resultMessage);
+    }
   };
 };
 
@@ -366,11 +387,26 @@ deleteButton.onclick = function (event) {
   const submit = createSubmitButton(mainForm, 'Delete');
   submit.onclick = async function (event) {
     const stackName = getSelectedItems(stackSelectionPointer.selection)[0];
-    console.log(stackName)
     if (stackName === undefined) {
       return;
     }
-    const response = await callApi('DELETE', apiBaseUrl + `/stacks/components/${stackName}`);
-    console.log(response);
+
+    let resultMessage = '';
+    let resultClass = '';
+    try {
+      const response = await callApi('DELETE', apiBaseUrl + `/stacks/components/${stackName}`);
+      if (response.data) {
+        resultClass = 'good';
+        resultMessage = `Your stack <b>${response.name}</b> has been deleted`;
+      } else {
+        resultClass = 'info';
+        resultMessage = `Your stack <b>${response.name}</b> has been locally deleted but has failed deleting it from database. This action will not persist in time`;
+      }
+    } catch (e) {
+      resultClass = 'bad';
+      resultMessage = 'Error when deleting stack';
+    } finally {
+      appendIconMessage(mainForm, resultClass, resultMessage);
+    }
   };
 };
