@@ -250,10 +250,25 @@ function buildChart(parent, data, periods, tooltip) {
   const size = xSubgroup.bandwidth()
   const spaceBetween = 5
   // Append legend
-  const legend = svg.append("g")
+  let legend = svg.append("g")
     .attr("class", "legend")
     .attr("transform", `translate(${svgWidth + yAxisLabelWidth - 55 - spaceBetween - size}, 0)`)
-    .selectAll("g")
+
+  const legendWidth = 35 + spaceBetween + size
+  const legendHeight = (size + spaceBetween) * subgroups.length - spaceBetween
+  const sum = lastMax + legendHeight + margin.bottom + spaceBetween
+  if (sum > svgHeight) {
+    if (svgWidth + legendWidth < parent.offsetWidth) {
+      svg.attr("width", svgWidth + legendWidth)
+      legend = legend.attr("transform", `translate(${svgWidth}, 0)`)
+    } else {
+      svg.attr("height", sum)
+      chart.attr('transform', `translate(0, ${sum - svgHeight})`)
+      margin.top += sum - svgHeight
+    }
+  }
+
+  legend = legend.selectAll("g")
     .data(subgroups)
     .enter()
   legend.append("rect")
@@ -273,14 +288,6 @@ function buildChart(parent, data, periods, tooltip) {
     })
     .attr("text-anchor", "left")
     .style("alignment-baseline", "middle")
-
-  const legendHeight = (size + spaceBetween) * subgroups.length - spaceBetween
-  const sum = lastMax + legendHeight + margin.bottom + spaceBetween
-  if (sum > svgHeight) {
-    svg.attr("height", sum)
-    chart.attr('transform', `translate(0, ${sum - svgHeight})`)
-    margin.top += sum - svgHeight
-  }
 
   svg.append("g")
     .attr("transform", `translate(${margin.left}, ${chartHeight + margin.top})`)
