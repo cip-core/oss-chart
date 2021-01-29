@@ -407,7 +407,7 @@ function updateGraphs(keepComment = false) {
           if (classes.indexOf('edited') === -1) classes.push('edited')
           comment.setAttribute('class', classes.join(' '))
         }
-        insertDefaultComment(div)
+        if (comments.length > 0) insertDefaultComment(div)
       }
     }
     const loading = createLoading()
