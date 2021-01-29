@@ -118,7 +118,7 @@ async function callApi(method, url, data) {
 
 function buildChart(parent, data, periods, tooltip) {
   var columns = data.columns
-  data = data.rows
+  data = data.rows.slice(0, 10)
 
   // List of subgroups = header of the csv files = soil condition here
   var subgroups = columns.slice(1)
@@ -230,11 +230,11 @@ function buildChart(parent, data, periods, tooltip) {
       const pathArray = window.location.pathname.split('/')
       const stack = pathArray.slice(0, pathArray.length - 1)
       const currentKind = parent.getAttribute('data-kind')
-      const exceptedKind = getExceptedKind(currentKind)
+      const expectedKind = getExceptedKind(currentKind)
       const query = {}
       query['dataName'] = d.short || d.name
-      query[currentKind] = parent.getAttribute('data-name')
-      const endUrl = `/${exceptedKind}?${new URLSearchParams(query).toString()}`
+      query[currentKind] = 'all'
+      const endUrl = `/${expectedKind}?${new URLSearchParams(query).toString()}`
       window.location.href = window.location.origin + stack.join('/') + endUrl
     })
     .attr("x", function(d) { return xSubgroup(d.key); })

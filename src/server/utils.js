@@ -55,7 +55,7 @@ async function loadCompanies(component) {
   return companies
 }
 
-function shouldUpdateCache(cachedData, periods, companies) {
+function shouldUpdateCache(cachedData, periods) {
   // no cache
   if (!cachedData) {
     return true
@@ -79,7 +79,7 @@ function shouldUpdateCache(cachedData, periods, companies) {
 async function loadData(component, metrics, periods, companies) {
   let cachedData = loadFromCache(component, metrics, periods)
 
-  if (shouldUpdateCache(cachedData, periods, companies)) {
+  if (shouldUpdateCache(cachedData, periods)) {
     const data = await loadFromDevstats(component, metrics, periods)
     if (periods.length + 1 > data.columns.length) {
       data.columns = [data.columns[0]].concat(periods)
@@ -113,6 +113,7 @@ async function loadData(component, metrics, periods, companies) {
   if (companies) {
     data.rows = data.rows.filter(company => companies.indexOf(company.name) !== -1)
   }
+  data.rows = data.rows.filter(company => company.name !== 'All')
 
   const response = {}
   response.data = data

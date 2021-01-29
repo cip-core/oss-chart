@@ -18,7 +18,7 @@ async function officialApi(req, res, next) {
   const company = req.params.company;
   const metrics = req.params.metrics;
 
-  let { periods, stack, components } = req.body;
+  let { periods, stack, components = [] } = req.body;
   if (stack) {
     const stackData = await utils.loadStacks(stack);
     if (stackData) {
@@ -36,6 +36,10 @@ async function officialApi(req, res, next) {
     };
     const componentsData = await utils.loadComponents();
     const componentsShort = componentsData.map(component => component.short);
+    const allComponents = components[0] === 'all';
+    if (allComponents) components = componentsShort;
+    components = components.filter(c => c !== 'all')
+
     for (const component of components) {
       const index = componentsShort.indexOf(component);
       if (index === -1) continue;

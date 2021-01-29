@@ -29,7 +29,7 @@ async function officialApi(req, res, next) {
           component,
           metrics,
           periods,
-          companies,
+          (companies && companies[0] === 'all') ? undefined : companies,
         );
         break;
       }
