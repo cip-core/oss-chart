@@ -149,7 +149,7 @@ function buildChart(parent, data, periods, tooltip) {
   const margin = {top: 10, right: 0, bottom: 15, left: 30}
   margin.left += yAxisLabelWidth
 
-  const svgWidth = Math.min(25 * subgroups.length * groups.length, parent.offsetWidth)
+  const svgWidth = Math.min(25 * subgroups.length * groups.length * (1 + 2 / subgroups.length), parent.offsetWidth)
   const chartWidth = svgWidth - margin.left - margin.right
   let svgHeight = 270
   const chartHeight = svgHeight - margin.top - margin.bottom
@@ -164,7 +164,7 @@ function buildChart(parent, data, periods, tooltip) {
   var x = d3.scaleBand()
     .domain(groups)
     .range([0, chartWidth ])
-    .padding([1 / 5])
+    .padding([1 / (subgroups.length + 1)])
 
   // Add Y axis
   var y = d3.scaleLinear()
