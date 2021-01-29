@@ -1,4 +1,5 @@
-const apiBaseUrl = window.location.origin;
+const apiBaseUrl = '%%API_BASE_URL%%';
+const stackPageUrl = '%%STACK_PAGE_URL%%';
 
 let stacks;
 let tabindex = 1;
@@ -310,12 +311,15 @@ createButton.onclick = function (event) {
         name: stackName,
         components: components,
       });
+      const query = new URLSearchParams({
+        dataName: response.short,
+      }).toString();
       if (response.data) {
         resultClass = 'good';
-        resultMessage = `Your stack <b>${response.name}</b> has been successfully created with identifier "${response.short}"`;
+        resultMessage = `Your stack <b>${response.name}</b> has been successfully created with identifier "${response.short}". Check it out <a href="${stackPageUrl}?${query}">here</a>`;
       } else {
         resultClass = 'info';
-        resultMessage = `Your stack <b>${response.name}</b> has been locally created with identifier "${response.short}" but has failed to save it to database. This action will not persist in time`;
+        resultMessage = `Your stack <b>${response.name}</b> has been locally created with identifier "${response.short}" but has failed to save it to database <i>(your stack will not persist in time)</i>. Check it out <a href="${stackPageUrl}?${query}">here</a>`;
       }
     } catch (e) {
       resultClass = 'bad';
@@ -382,7 +386,7 @@ editButton.onclick = function (event) {
         resultMessage = `Your stack <b>${response.name}</b> has been edited`;
       } else {
         resultClass = 'info';
-        resultMessage = `Your stack <b>${response.name}</b> has been locally edited but has failed to save it to database. This action will not persist in time`;
+        resultMessage = `Your stack <b>${response.name}</b> has been locally edited but has failed to save it to database <i>(this action will not persist in time)</i>`;
       }
     } catch (e) {
       resultClass = 'bad';
@@ -424,7 +428,7 @@ deleteButton.onclick = function (event) {
         resultMessage = `Your stack <b>${response.name}</b> has been deleted`;
       } else {
         resultClass = 'info';
-        resultMessage = `Your stack <b>${response.name}</b> has been locally deleted but has failed deleting it from database. This action will not persist in time`;
+        resultMessage = `Your stack <b>${response.name}</b> has been locally deleted but has failed deleting it from database <i>(this action will not persist in time)</i>`;
       }
     } catch (e) {
       resultClass = 'bad';

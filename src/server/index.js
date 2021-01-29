@@ -3,6 +3,7 @@ const path = require('path')
 const express = require('express')
 const bodyParser = require('body-parser')
 
+const config = require('./config')
 const componentRoute = require('./component')
 const stackRoute = require('./stack')
 const companyRoute = require('./company')
@@ -24,6 +25,7 @@ async function init() {
   app.use(preprocessRequest)
   app.use(logRequest)
   app.get('/graph/script.js', loadScript)
+  app.get('/js/stackMenu.js', loadScript)
   app.use(express.static(__dirname + '/../public'))
   app.use('/components', componentRoute)
   app.use('/stacks', stackRoute)
@@ -34,12 +36,13 @@ async function init() {
 
 async function loadScript(req, res, next) {
   const filePath = '/../public' + req.originalUrl
-  const file = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
-  await res.send(file.replace(/%%API_BASE_URL%%/g, `//${req.headers.host}`))
+  let content = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' })
+  content = content.replace(/%%API_BASE_URL%%/g, `//${req.headers.host}`)
+  content = content.replace(/%%STACK_PAGE_URL%%/g, config.STACK_PAGE_URL)
+  await res.send(content)
 }
 
 async function initDatabase() {
-  const config = require('./config')
   const database = require('./database')
 
   const clientConfig = {
