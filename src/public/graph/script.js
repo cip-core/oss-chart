@@ -369,6 +369,15 @@ function dateInterval(dateFrom, dateTo) {
   return (outputString || 'few seconds ') + 'ago';
 }
 
+function insertDefaultComment(parent) {
+  const element = document.createElement('text')
+  element.setAttribute('class', 'graphComment default')
+  element.innerHTML = "Because graph has been updated, the following comment may not be valid anymore:"
+
+  parent.insertBefore(element, parent.firstChild)
+  return element
+}
+
 function updateGraphs(keepComment = false) {
   let tooltip = d3.select("#graphTooltip");
   if (tooltip.empty()) {
@@ -383,7 +392,16 @@ function updateGraphs(keepComment = false) {
       const svg = div.querySelector('svg')
       if (svg) svg.remove()
     } else {
-      div.innerHTML = "" // Clear div
+      const defaultComment = div.querySelector('.graphComment.default')
+      if (!defaultComment) {
+        const comments = div.querySelectorAll('.graphComment')
+        for (const comment of comments) {
+          const classes = comment.getAttribute('class').split(' ')
+          if (classes.indexOf('edited') === -1) classes.push('edited')
+          comment.setAttribute('class', classes.join(' '))
+        }
+        insertDefaultComment(div)
+      }
     }
     const loading = createLoading()
     div.append(loading)
