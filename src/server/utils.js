@@ -381,10 +381,12 @@ async function updateComponents() {
       const searchBegin = '://';
       const beginIndex = href.indexOf(searchBegin) + searchBegin.length;
       const endIndex = href.indexOf('.' + hostname);
-      components[href] = {
-        name: firstChild.rawText,
-        short: href.slice(beginIndex, endIndex),
-      };
+      if (endIndex !== -1) {
+        components[href] = {
+          name: firstChild.rawText,
+          short: href.slice(beginIndex, endIndex),
+        };
+      }
     } else if (firstChild.rawTagName === 'img') {
       promises.push(
         axios.get(`${baseUrl}/${firstChild.getAttribute('src')}`).then(function(response) {
