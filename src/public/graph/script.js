@@ -233,7 +233,7 @@ function buildChart(parent, data, periods, tooltip) {
       const expectedKind = getExceptedKind(currentKind)
       const query = {}
       query['dataName'] = d.short || d.name
-      query[currentKind] = 'all'
+      query[currentKind] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
       const endUrl = `/${expectedKind}?${new URLSearchParams(query).toString()}`
       window.location.href = window.location.origin + stack.join('/') + endUrl
     })
