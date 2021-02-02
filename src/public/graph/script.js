@@ -69,7 +69,8 @@ async function updateGraph(div, tooltip) {
   const metric = div.getAttribute('data-metric');
 
   // Retrieve data from API
-  const response = await callApi('POST', `${apiBaseUrl}/${kind === 'stack' ? 'stacks' : kind}/${item}/${metric}`, body);
+  const call = callApi('POST', `${apiBaseUrl}/${kind === 'stack' ? 'stacks' : kind}/${item}/${metric}`, body);
+  const response = await timeout(20000, call);
 
   // Remove old chart
   d3.select(div).select('svg').remove()
@@ -80,6 +81,24 @@ async function updateGraph(div, tooltip) {
     // Put new chart
     d3.select(div).append(() => svg)
   }
+}
+
+function timeout(ms, promise) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Request has timed out. The server is fetching data, please try again in a minute'))
+    }, ms)
+
+    promise
+      .then(value => {
+        clearTimeout(timer)
+        resolve(value)
+      })
+      .catch(reason => {
+        clearTimeout(timer)
+        reject(reason)
+      })
+  })
 }
 
 async function callApi(method, url, data) {
@@ -412,10 +431,16 @@ function updateGraphs(keepComment = false) {
     }
     const loading = createLoading()
     div.append(loading)
+    const timeoutId = setTimeout(function() {
+      const text = document.createElement('text');
+      text.innerHTML = "Updating cache";
+      loading.append(text);
+    }, 5000)
     updateGraph(div, tooltip).catch(function(e) {
       div.append(createErrorMessage(e.message))
       console.error(e)
     }).finally(function() {
+      clearTimeout(timeoutId)
       div.removeChild(loading)
     })
   }

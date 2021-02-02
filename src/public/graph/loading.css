@@ -1,8 +1,15 @@
 .lds-ring {
-    display: inline-block;
-    position: relative;
+    display: table;
+    text-align: center;
     width: 80px;
     height: 80px;
+}
+.lds-ring text {
+    display: table-cell;
+    vertical-align: middle;
+    font-size: x-small;
+    font-style: italic;
+    padding: 15px;
 }
 .lds-ring div {
     box-sizing: border-box;
