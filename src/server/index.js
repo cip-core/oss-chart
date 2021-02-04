@@ -37,7 +37,6 @@ async function init() {
 
 async function loadScript(req, res, next) {
   const host = req.headers.host
-  console.log(res.request.url.p)
   const filePath = '/../public' + req.originalUrl
   let content = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' })
   content = content.replace(/%%API_BASE_URL%%/g, `${req.protocol}://${host}`)
