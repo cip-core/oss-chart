@@ -38,7 +38,7 @@ async function loadScript(req, res, next) {
   const host = req.headers.host
   const filePath = '/../public' + req.originalUrl
   let content = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' })
-  content = content.replace(/%%API_BASE_URL%%/g, `http${req.secure ? 's' : ''}://${host}`)
+  content = content.replace(/%%API_BASE_URL%%/g, `http${req.connection.encrypted ? 's' : ''}://${host}`)
   content = content.replace(/%%STACK_PAGE_URL%%/g, config.STACK_PAGE_URL)
   await res.send(content)
 }
