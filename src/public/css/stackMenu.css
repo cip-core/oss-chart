@@ -1,5 +1,6 @@
 @import "icons.css";
 @import "../graph/loading.css";
+@import "../graph/svg.css";
 @import "vanillaSelectBox.css";
 
 body {
@@ -34,34 +35,6 @@ body {
 
 .stacksList > label {
     align-self: center;
-}
-
-.itemsGrid ul {
-    padding-inline-start: 0;
-    margin: 0;
-    list-style-type: none;
-}
-
-.itemsGrid li {
-    height: min-content;
-    display: grid;
-    grid-template-columns: 1.5em auto;
-    grid-template-rows: 1.5em;
-    grid-column-gap: .5em;
-    align-items: center;
-}
-
-.itemsGrid li:not(:last-child) {
-    margin-bottom: .5em;
-}
-
-.itemsGrid li svg {
-    max-height: 100%;
-    max-width: 1.5em;
-}
-
-.itemsGrid li text {
-    justify-self: baseline;
 }
 
 .mainForm {
