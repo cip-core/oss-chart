@@ -242,7 +242,7 @@ function buildChart(parent, data, periods, tooltip) {
         .style("opacity", 0);
     })
 
-  if (parent.getAttribute('data-clickable')) {
+  if (parent.getAttribute('data-clickable') !== null) {
     chartRect.on("mouseover", function (d) {
       d3.select(this).style("cursor", "pointer")
       tooltip.transition()
