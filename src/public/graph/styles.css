@@ -1,0 +1,31 @@
+@import "loading.css";
+
+.graph {
+}
+
+.legendText {
+    font-size: 10px;
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: fit-content;
+    height: fit-content;
+    padding: 5px;
+    font-size: 12px;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+.graphErrorMessage {
+    color: red;
+}
+
+.graphComment.edited {
+    opacity: .33;
+    font-style: italic;
+    margin-block-start: .5em;
+}

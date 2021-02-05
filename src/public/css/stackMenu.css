@@ -1,3 +1,8 @@
+@import "icons.css";
+@import "../graph/loading.css";
+@import "../graph/svg.css";
+@import "vanillaSelectBox.css";
+
 body {
     background-color: #EBEBEB;
 }
@@ -32,43 +37,23 @@ body {
     align-self: center;
 }
 
-.itemsGrid ul {
-    padding-inline-start: 0;
-    margin: 0;
-    list-style-type: none;
-}
-
-.itemsGrid li {
-    height: min-content;
-    display: grid;
-    grid-template-columns: 1.5em auto;
-    grid-template-rows: 1.5em;
-    grid-column-gap: .5em;
-    align-items: center;
-}
-
-.itemsGrid li:not(:last-child) {
-    margin-bottom: .5em;
-}
-
-.itemsGrid li svg {
-    max-height: 100%;
-    max-width: 1.5em;
-}
-
-.itemsGrid li text {
-    justify-self: baseline;
-}
-
 .mainForm {
-    width: fit-content;
+    width: 50%;
     display: grid;
     grid-row-gap: .5em;
+}
+
+@media only screen and (max-width: 768px) {
+    /* Mobile devices */
+    .mainForm {
+        width: 100%;
+    }
 }
 
 .subGrid {
     display: grid;
     grid-auto-flow: column;
+    grid-template-columns: max-content auto;
     grid-column-gap: .5em;
     align-items: baseline;
 }
@@ -77,4 +62,16 @@ button#submit {
     width: fit-content;
     padding: .5em 1em;
     justify-self: center;
+}
+
+.resultDiv {
+    justify-self: center;
+    width: fit-content;
+    display: grid;
+    grid-template-columns: min-content auto;
+    grid-column-gap: .5em;
+}
+
+.resultDiv > text {
+    align-self: center;
 }

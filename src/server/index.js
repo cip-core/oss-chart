@@ -1,6 +1,9 @@
+const fs = require('fs')
+const path = require('path')
 const express = require('express')
 const bodyParser = require('body-parser')
 
+const config = require('./config')
 const componentRoute = require('./component')
 const stackRoute = require('./stack')
 const companyRoute = require('./company')
@@ -12,35 +15,18 @@ app.use(bodyParser.urlencoded({
   extended: true
 }))
 
-const defaultComponent = 'k8s'
-const defaultCompanies = [
-  'Docker',
-  'Google',
-  'IBM',
-  'Independent',
-  'Microsoft',
-  'Mirantis',
-  'Pivotal',
-  'Red Hat',
-  'VMware',
-]
-
-const defaultQueryString = {
-  companies: defaultCompanies.join(','),
-}
-
 async function init() {
   try {
     await initDatabase()
   } catch (e) {
     console.error(e)
   }
+  app.enable('trust proxy')
   app.use(cors)
   app.use(preprocessRequest)
   app.use(logRequest)
-  app.get('/', function(req, res) {
-    res.redirect(`/components/${defaultComponent}?${new URLSearchParams(defaultQueryString).toString()}`)
-  })
+  app.get('/graph/script.js', loadScript)
+  app.get('/js/stackMenu.js', loadScript)
   app.use(express.static(__dirname + '/../public'))
   app.use('/components', componentRoute)
   app.use('/stacks', stackRoute)
@@ -49,8 +35,16 @@ async function init() {
   return app
 }
 
+async function loadScript(req, res, next) {
+  const host = req.headers.host
+  const filePath = '/../public' + req.originalUrl
+  let content = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' })
+  content = content.replace(/%%API_BASE_URL%%/g, `${req.protocol}://${host}`)
+  content = content.replace(/%%STACK_PAGE_URL%%/g, config.STACK_PAGE_URL)
+  await res.send(content)
+}
+
 async function initDatabase() {
-  const config = require('./config')
   const database = require('./database')
 
   const clientConfig = {
@@ -65,6 +59,32 @@ async function initDatabase() {
     await database.dropTables()
   }
   await database.createTables()
+  await fillLocalCache(database)
+}
+
+async function fillLocalCache(database) {
+  console.log('Filling local cache from database...')
+  const response = await database.selectFrom('component_stacks', [
+    'id',
+    'parent',
+    'name',
+    'child',
+  ])
+  const stacks = {}
+  for (const row of response.rows) {
+    let stack = stacks[row.parent]
+    if (!stack) {
+      stack = {}
+      stack.short = row.parent
+      stack.name = row.name
+      stack.components = []
+      stacks[row.parent] = stack
+    }
+    stack.components.push(row.child)
+  }
+  const utils = require('./utils')
+  utils.setStacksLocalCache(stacks)
+  console.log('Local cache filled from database')
 }
 
 async function homeUrl(req, res, next) {

@@ -1,4 +1,5 @@
-const apiBaseUrl = window.location.origin;
+const apiBaseUrl = '%%API_BASE_URL%%';
+const stackPageUrl = '%%STACK_PAGE_URL%%';
 
 let stacks;
 let tabindex = 1;
@@ -243,6 +244,28 @@ function createSubmitButton(parent, text) {
   return button;
 }
 
+function createLoading() {
+  const div = document.createElement('div')
+  div.setAttribute('class', 'lds-ring')
+  div.style.justifySelf = 'center';
+  for (let i = 0; i < 4; i++) div.append(document.createElement('div'))
+  return div
+}
+
+function appendIconMessage(parent, iconClass, message) {
+  const resultDiv = appendElement(parent, 'div', {
+    class: 'resultDiv',
+    id: 'result',
+  });
+  appendElement(resultDiv, 'div', {
+    class: `icon ${iconClass}`,
+  });
+  const text = appendElement(resultDiv, 'text', {});
+  text.innerHTML = message;
+
+  return resultDiv;
+}
+
 createButton.onclick = function (event) {
   resetPage();
 
@@ -264,19 +287,47 @@ createButton.onclick = function (event) {
 
   const submit = createSubmitButton(mainForm);
   submit.onclick = async function (event) {
+    const resultDiv = document.getElementById('result');
+    if (resultDiv) resultDiv.remove();
+
     const stackName = input.value;
     if (!stackName) {
+      appendIconMessage(mainForm, 'info', 'Stack name can not be empty');
       return;
     }
     const components = getSelectedItems(selectionPointer.selection);
     if (components.length === 0) {
+      appendIconMessage(mainForm, 'info', 'Please select at least one component');
       return;
     }
-    const response = await callApi('POST', apiBaseUrl + '/stacks/components', {}, {
-      name: stackName,
-      components: components,
-    });
-    console.log(response);
+
+    const loading = createLoading();
+    mainForm.append(loading);
+
+    let resultMessage = '';
+    let resultClass = '';
+    try {
+      const response = await callApi('POST', apiBaseUrl + '/stacks/components', {}, {
+        name: stackName,
+        components: components,
+      });
+      const query = new URLSearchParams({
+        dataName: response.short,
+      }).toString();
+      if (response.data) {
+        resultClass = 'good';
+        resultMessage = `Your stack <b>${response.name}</b> has been successfully created with identifier "${response.short}". Check it out <a href="${stackPageUrl}?${query}">here</a>`;
+      } else {
+        resultClass = 'info';
+        resultMessage = `Your stack <b>${response.name}</b> has been locally created with identifier "${response.short}" but has failed to save it to database <i>(your stack will not persist in time)</i>. Check it out <a href="${stackPageUrl}?${query}">here</a>`;
+      }
+    } catch (e) {
+      resultClass = 'bad';
+      resultMessage = 'Error when creating stack';
+    } finally {
+      loading.remove();
+      appendIconMessage(mainForm, resultClass, resultMessage);
+    }
   };
 };
 
@@ -312,16 +363,38 @@ editButton.onclick = function (event) {
   submit.onclick = async function (event) {
     const stackName = getSelectedItems(stackSelectionPointer.selection)[0];
     if (stackName === undefined) {
+      appendIconMessage(mainForm, 'info', 'Please select a stack to edit');
       return;
     }
     const components = getSelectedItems(componentSelectionPointer.selection);
     if (components.length === 0) {
+      appendIconMessage(mainForm, 'info', 'Please select at least one component');
       return;
     }
-    const response = await callApi('PUT', apiBaseUrl + `/stacks/components/${stackName}`, {}, {
-      components: components,
-    });
-    console.log(response);
+
+    const loading = createLoading();
+    mainForm.append(loading);
+
+    let resultMessage = '';
+    let resultClass = '';
+    try {
+      const response = await callApi('PUT', apiBaseUrl + `/stacks/components/${stackName}`, {}, {
+        components: components,
+      });
+      if (response.data) {
+        resultClass = 'good';
+        resultMessage = `Your stack <b>${response.name}</b> has been edited`;
+      } else {
+        resultClass = 'info';
+        resultMessage = `Your stack <b>${response.name}</b> has been locally edited but has failed to save it to database <i>(this action will not persist in time)</i>`;
+      }
+    } catch (e) {
+      resultClass = 'bad';
+      resultMessage = 'Error when editing stack';
+    } finally {
+      loading.remove();
+      appendIconMessage(mainForm, resultClass, resultMessage);
+    }
   };
 };
 
@@ -338,11 +411,31 @@ deleteButton.onclick = function (event) {
   const submit = createSubmitButton(mainForm, 'Delete');
   submit.onclick = async function (event) {
     const stackName = getSelectedItems(stackSelectionPointer.selection)[0];
-    console.log(stackName)
     if (stackName === undefined) {
+      appendIconMessage(mainForm, 'info', 'Please select a stack to delete');
       return;
     }
-    const response = await callApi('DELETE', apiBaseUrl + `/stacks/components/${stackName}`);
-    console.log(response);
+
+    const loading = createLoading();
+    mainForm.append(loading);
+
+    let resultMessage = '';
+    let resultClass = '';
+    try {
+      const response = await callApi('DELETE', apiBaseUrl + `/stacks/components/${stackName}`);
+      if (response.data) {
+        resultClass = 'good';
+        resultMessage = `Your stack <b>${response.name}</b> has been deleted`;
+      } else {
+        resultClass = 'info';
+        resultMessage = `Your stack <b>${response.name}</b> has been locally deleted but has failed deleting it from database <i>(this action will not persist in time)</i>`;
+      }
+    } catch (e) {
+      resultClass = 'bad';
+      resultMessage = 'Error when deleting stack';
+    } finally {
+      loading.remove();
+      appendIconMessage(mainForm, resultClass, resultMessage);
+    }
   };
 };

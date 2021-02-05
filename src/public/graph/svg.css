@@ -1,0 +1,26 @@
+.itemsList {
+    margin: 0;
+    list-style-type: none;
+}
+
+.itemsList li {
+    height: min-content;
+    display: grid;
+    grid-template-columns: 1.5em auto;
+    grid-template-rows: 1.5em;
+    grid-column-gap: .5em;
+    align-items: center;
+}
+
+.itemsList li:not(:last-child) {
+    margin-bottom: .5em;
+}
+
+.itemsList li svg {
+    max-height: 100%;
+    max-width: 1.5em;
+}
+
+.itemsList li text {
+    justify-self: baseline;
+}

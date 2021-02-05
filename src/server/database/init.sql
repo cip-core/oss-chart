@@ -21,11 +21,13 @@ CREATE TABLE IF NOT EXISTS companies (
 CREATE TABLE IF NOT EXISTS component_stacks (
    id varchar unique,
    parent varchar,
+   name varchar,
    child varchar
 );
 
 CREATE TABLE IF NOT EXISTS company_stacks (
    id varchar unique,
    parent varchar,
+   name varchar,
    child varchar
 );

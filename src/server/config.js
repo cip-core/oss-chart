@@ -4,6 +4,7 @@ const configFile = '../../config.json'
 
 let config = {}
 const variables = [
+  'STACK_PAGE_URL',
 ]
 // Optional variables and their default values
 const optionalVariables = {

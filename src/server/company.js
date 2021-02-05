@@ -1,7 +1,4 @@
-const path = require('path');
-const fs = require('fs');
 const express = require('express');
-const HTMLParser = require('node-html-parser');
 
 const utils = require('./utils');
 
@@ -10,7 +7,6 @@ const router = express.Router({
 });
 
 router.get('/', getCompanies);
-router.get('/:company', renderPage);
 router.post('/:company/:metrics', officialApi);
 
 async function getCompanies(req, res, next) {
@@ -18,28 +14,11 @@ async function getCompanies(req, res, next) {
   await res.json(companies)
 }
 
-async function renderPage(req, res, next) {
-  const company = req.params.company;
-
-  const companies = await utils.loadCompanies();
-  const index = companies.indexOf(company);
-  if (index === -1) {
-    res.statusCode = 404;
-    return await res.json({message: `Company "${company}" does not exist`});
-  }
-
-  const filePath = 'company.html';
-  const html = fs.readFileSync(path.join(__dirname, filePath), { encoding: 'utf8' });
-  const document = HTMLParser.parse(html);
-  document.querySelector('#companyName').set_content(company);
-  return await res.send(document.toString());
-}
-
 async function officialApi(req, res, next) {
   const company = req.params.company;
   const metrics = req.params.metrics;
 
-  let { periods, stack, components } = req.body;
+  let { periods, stack, components = [] } = req.body;
   if (stack) {
     const stackData = await utils.loadStacks(stack);
     if (stackData) {
@@ -57,6 +36,10 @@ async function officialApi(req, res, next) {
     };
     const componentsData = await utils.loadComponents();
     const componentsShort = componentsData.map(component => component.short);
+    const allComponents = components[0] === 'all';
+    if (allComponents) components = componentsShort;
+    components = components.filter(c => c !== 'all')
+
     for (const component of components) {
       const index = componentsShort.indexOf(component);
       if (index === -1) continue;
@@ -77,7 +60,7 @@ async function officialApi(req, res, next) {
     }
     response.columns = response.columns.filter((value, index, self) => self.indexOf(value) === index);
 
-    return await res.json(response);
+    return await res.json({ data: response });
   } catch (e) {
     console.error(e)
     const response = e.response;
