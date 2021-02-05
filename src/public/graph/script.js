@@ -205,7 +205,7 @@ function buildChart(parent, data, periods, tooltip) {
   // Show the bars
   const chart = svg.append("g")
     .attr("class", "chart")
-  chart.selectAll("g")
+  const chartRect = chart.selectAll("g")
   // Enter in data = loop group per group
     .data(data)
     .enter()
@@ -227,35 +227,7 @@ function buildChart(parent, data, periods, tooltip) {
       });
     })
     .enter().append("rect")
-    .on("mouseover", function(d) {
-      d3.select(this).style("cursor", "pointer")
-      tooltip.transition()
-        .duration(200)
-        .style("opacity", .9);
-      const time = periods.filter(o => o.short === d.key)[0]
-      tooltip.html(`Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
-        + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
-        + `Click for more details`
-      )
-        .style("left", (d3.event.pageX) + "px")
-        .style("top", (d3.event.pageY - 28) + "px");
-    })
-    .on("mouseout", function(d) {
-      tooltip.transition()
-        .duration(500)
-        .style("opacity", 0);
-    })
-    .on("click", function(d) {
-      const pathArray = window.location.pathname.split('/')
-      const stack = pathArray.slice(0, pathArray.length - 1)
-      const currentKind = parent.getAttribute('data-kind')
-      const expectedKind = getExceptedKind(currentKind)
-      const query = {}
-      query['dataName'] = d.short || d.name
-      query[currentKind] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
-      const endUrl = `/${expectedKind}?${new URLSearchParams(query).toString()}`
-      window.location.href = window.location.origin + stack.join('/') + endUrl
-    })
+  chartRect.attr("fill", function(d) { return color(d.key); })
     .attr("x", function(d) { return xSubgroup(d.key); })
     .attr("y", function(d) { return y(d.percentage); })
     .attr("width", xSubgroup.bandwidth())
@@ -264,7 +236,50 @@ function buildChart(parent, data, periods, tooltip) {
       if (d.isLast) lastMax = Math.max(lastMax, height)
       return height;
     })
-    .attr("fill", function(d) { return color(d.key); });
+    .on("mouseout", function(d) {
+      tooltip.transition()
+        .duration(500)
+        .style("opacity", 0);
+    })
+
+  if (parent.getAttribute('data-clickable')) {
+    chartRect.on("mouseover", function (d) {
+      d3.select(this).style("cursor", "pointer")
+      tooltip.transition()
+        .duration(200)
+        .style("opacity", .9);
+      const time = periods.filter(o => o.short === d.key)[0]
+      const text = `Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
+        + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
+        + `Click for more details`
+      tooltip.html(text)
+        .style("left", (d3.event.pageX) + "px")
+        .style("top", (d3.event.pageY - 28) + "px");
+    })
+    .on("click", function (d) {
+      const pathArray = window.location.pathname.split('/')
+      const stack = pathArray.slice(0, pathArray.length - 1)
+      const currentKind = parent.getAttribute('data-kind')
+      const expectedKind = getExceptedKind(currentKind)
+      const query = {}
+      query['dataName'] = d.short || d.name
+      query[currentKind] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
+      const endUrl = `/${expectedKind}?${new URLSearchParams(query).toString()}`
+      window.open(window.location.origin + stack.join('/') + endUrl, '_blank')
+    })
+  } else {
+    chartRect.on("mouseover", function (d) {
+      tooltip.transition()
+        .duration(200)
+        .style("opacity", .9);
+      const time = periods.filter(o => o.short === d.key)[0]
+      const text = `Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
+        + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
+      tooltip.html(text)
+        .style("left", (d3.event.pageX) + "px")
+        .style("top", (d3.event.pageY - 28) + "px");
+    })
+  }
 
   const size = xSubgroup.bandwidth()
   const spaceBetween = 5
