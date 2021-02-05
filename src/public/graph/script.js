@@ -77,9 +77,7 @@ async function updateGraph(div, tooltip) {
 
   if (response.data.rows.length > 0) {
     // Build Chart
-    const svg = buildChart(div, response.data, times.filter(t => periods.indexOf(t.short) !== -1), tooltip)
-    // Put new chart
-    d3.select(div).append(() => svg)
+    buildChart(div, response.data, times.filter(t => periods.indexOf(t.short) !== -1), tooltip)
   }
 }
 
@@ -136,6 +134,9 @@ async function callApi(method, url, data) {
 }
 
 function buildChart(parent, data, periods, tooltip) {
+  const firstDiv = document.createElement('div')
+  const secondDiv = document.createElement('div')
+
   var columns = data.columns
   data = data.rows.slice(0, 10)
 
@@ -168,14 +169,15 @@ function buildChart(parent, data, periods, tooltip) {
   const margin = {top: 10, right: 0, bottom: 15, left: 30}
   margin.left += yAxisLabelWidth
 
-  const svgWidth = Math.min(25 * subgroups.length * groups.length * (1 + 2 / subgroups.length), parent.offsetWidth)
+  let svgWidth = Math.min(25 * subgroups.length * groups.length * (1 + 2 / subgroups.length), parent.offsetWidth)
+  svgWidth = Math.max(svgWidth, 10 * subgroups.length * groups.length * (1 + 2 / subgroups.length))
   const chartWidth = svgWidth - margin.left - margin.right
   let svgHeight = 270
   const chartHeight = svgHeight - margin.top - margin.bottom
 
   // append the svg object to the body of the page
-  var svg = d3.create('svg')
-  svg
+  var svg2 = d3.create('svg')
+  svg2
     .attr("width", svgWidth)
     .attr("height", svgHeight)
 
@@ -203,7 +205,7 @@ function buildChart(parent, data, periods, tooltip) {
 
   let lastMax = 0
   // Show the bars
-  const chart = svg.append("g")
+  const chart = svg2.append("g")
     .attr("class", "chart")
   const chartRect = chart.selectAll("g")
   // Enter in data = loop group per group
@@ -284,23 +286,26 @@ function buildChart(parent, data, periods, tooltip) {
   const size = xSubgroup.bandwidth()
   const spaceBetween = 5
   // Append legend
-  let legend = svg.append("g")
+  var svg1 = d3.create('svg')
+  let legend = svg1.append("g")
     .attr("class", "legend")
-    .attr("transform", `translate(${svgWidth + yAxisLabelWidth - 55 - spaceBetween - size}, 0)`)
+    //.attr("transform", `translate(${svgWidth + yAxisLabelWidth - 55 - spaceBetween - size}, 0)`)
 
   const legendWidth = 35 + spaceBetween + size
   const legendHeight = (size + spaceBetween) * subgroups.length - spaceBetween
   const sum = lastMax + legendHeight + margin.bottom + spaceBetween
   if (sum > svgHeight) {
     if (svgWidth + legendWidth < parent.offsetWidth) {
-      svg.attr("width", svgWidth + legendWidth)
+      //svg.attr("width", svgWidth + legendWidth)
       legend = legend.attr("transform", `translate(${svgWidth}, 0)`)
     } else {
-      svg.attr("height", sum)
+      //svg.attr("height", sum)
       chart.attr('transform', `translate(0, ${sum - svgHeight})`)
       margin.top += sum - svgHeight
     }
+    svgHeight = sum
   }
+  svg1.attr("width", legendWidth)
 
   legend = legend.selectAll("g")
     .data(subgroups)
@@ -323,14 +328,14 @@ function buildChart(parent, data, periods, tooltip) {
     .attr("text-anchor", "left")
     .style("alignment-baseline", "middle")
 
-  svg.append("g")
+  svg2.append("g")
     .attr("transform", `translate(${margin.left}, ${chartHeight + margin.top})`)
     .call(d3.axisBottom(x).tickSize(0));
-  svg.append("g")
+  svg2.append("g")
     .attr("transform", `translate(${margin.left}, ${margin.top})`)
     .call(d3.axisLeft(y));
 
-  svg.append("text")
+  svg2.append("text")
     .attr("transform", "rotate(-90)")
     .attr("y", yAxisLabelWidth)
     .attr("x", 0 - (chartHeight / 2))
@@ -338,7 +343,13 @@ function buildChart(parent, data, periods, tooltip) {
     .style("text-anchor", "middle")
     .text("Percentage");
 
-  return svg.node()
+  parent.style.height = `${svgHeight}px`
+  parent.style.maxWidth = `${svgWidth}px`
+  parent.append(firstDiv)
+  parent.append(secondDiv)
+
+  d3.select(firstDiv).append(() => svg1.node())
+  d3.select(secondDiv).append(() => svg2.node())
 }
 
 function transformPercentage(data, subgroups) {
