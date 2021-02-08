@@ -137,11 +137,11 @@ function buildChart(parent, data, periods, tooltip) {
   const firstDiv = document.createElement('div')
   const secondDiv = document.createElement('div')
 
-  var columns = data.columns
+  let columns = data.columns
   data = data.rows
 
   // List of subgroups = header of the csv files = soil condition here
-  var subgroups = columns.slice(1)
+  let subgroups = columns.slice(1)
   // Sort columns according to "times" list
   const shortTimes = periods.map(t => t.short)
   subgroups.sort(function(a, b) {
@@ -163,7 +163,8 @@ function buildChart(parent, data, periods, tooltip) {
   const maxPercentage = getUpperLimit(data)
 
   // List of groups = species here = value of the first column called group -> I show them on the X axis
-  var groups = d3.map(data, function(d){return(d[columns[0]])}).keys()
+  let groups = d3.map(data, function(d){return(d[columns[0]])}).keys()
+  //groups = groups.map(name => name.split(" ").join('\n'))
 
   const yAxisLabelWidth = 10
   // set the dimensions and margins of the graph
@@ -177,30 +178,30 @@ function buildChart(parent, data, periods, tooltip) {
   const chartHeight = svgHeight - margin.top - margin.bottom
 
   // append the svg object to the body of the page
-  var svg2 = d3.create('svg')
+  let svg2 = d3.create('svg')
   svg2
     .attr("width", svgWidth)
     .attr("height", svgHeight)
 
   // Add X axis
-  var x = d3.scaleBand()
+  let x = d3.scaleBand()
     .domain(groups)
     .range([0, chartWidth ])
     .padding([1 / (subgroups.length + 1)])
 
   // Add Y axis
-  var y = d3.scaleLinear()
+  let y = d3.scaleLinear()
     .domain([0, maxPercentage])
     .range([ chartHeight, 0 ]);
 
   // Another scale for subgroup position?
-  var xSubgroup = d3.scaleBand()
+  let xSubgroup = d3.scaleBand()
     .domain(subgroups)
     .range([0, x.bandwidth()])
     .padding([0.05])
 
   // color palette = one color per subgroup
-  var color = d3.scaleOrdinal()
+  let color = d3.scaleOrdinal()
     .domain(subgroups)
     .range(d3.schemeSet1)
 
@@ -287,7 +288,7 @@ function buildChart(parent, data, periods, tooltip) {
   const size = xSubgroup.bandwidth()
   const spaceBetween = 5
   // Append legend
-  var svg1 = d3.create('svg')
+  let svg1 = d3.create('svg')
   let legend = svg1.append("g")
     .attr("class", "legend")
     //.attr("transform", `translate(${svgWidth + yAxisLabelWidth - 55 - spaceBetween - size}, 0)`)
@@ -307,6 +308,7 @@ function buildChart(parent, data, periods, tooltip) {
     svgHeight = sum
   }
   svg1.attr("width", legendWidth)
+  svg1.attr("height", legendHeight)
 
   legend = legend.selectAll("g")
     .data(subgroups)
@@ -329,9 +331,7 @@ function buildChart(parent, data, periods, tooltip) {
     .attr("text-anchor", "left")
     .style("alignment-baseline", "middle")
 
-  svg2.append("g")
-    .attr("transform", `translate(${margin.left}, ${chartHeight + margin.top})`)
-    .call(d3.axisBottom(x).tickSize(0));
+
   svg2.append("g")
     .attr("transform", `translate(${margin.left}, ${margin.top})`)
     .call(d3.axisLeft(y));
@@ -344,13 +344,57 @@ function buildChart(parent, data, periods, tooltip) {
     .style("text-anchor", "middle")
     .text("Percentage");
 
-  parent.style.height = `${svgHeight}px`
-  parent.style.maxWidth = `${svgWidth}px`
   parent.append(firstDiv)
   parent.append(secondDiv)
 
   d3.select(firstDiv).append(() => svg1.node())
   d3.select(secondDiv).append(() => svg2.node())
+
+  const lines = {}
+  lines.max = 0
+  svg2.append("g")
+    .attr("transform", `translate(${margin.left}, ${chartHeight + margin.top})`)
+    .call(d3.axisBottom(x).tickSize(0))
+    .selectAll(".tick text")
+    .call(wrap, x.bandwidth(), lines)
+
+  svgHeight = svgHeight + lines.max * 11
+  svg2.attr("height", svgHeight)
+  secondDiv.style.height = svgHeight
+  parent.style.height = `${svgHeight}px`
+  parent.style.maxWidth = `${svgWidth}px`
+}
+
+function wrap(text, width, lines) {
+  text.each(function() {
+    var text = d3.select(this),
+      words = text.text().split(/\s+/).reverse(),
+      word,
+      line = [],
+      lineNumber = 0,
+      lineHeight = 1.1, // ems
+      y = text.attr("y"),
+      dy = parseFloat(text.attr("dy")),
+      tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+    while (word = words.pop()) {
+      line.push(word);
+      tspan.text(line.join(" "));
+      if (tspan.node().getComputedTextLength() > width) {
+        line.pop();
+        if (line.length > 0) {
+          tspan.text(line.join(" "));
+          line = [word];
+        } else {
+          tspan.text(word);
+          line = [];
+        }
+        tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(line.join(" "));
+        if (lineNumber > lines.max) {
+          lines.max = lineNumber
+        }
+      }
+    }
+  });
 }
 
 function transformPercentage(data, subgroups) {
