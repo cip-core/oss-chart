@@ -138,7 +138,7 @@ function buildChart(parent, data, periods, tooltip) {
   const secondDiv = document.createElement('div')
 
   var columns = data.columns
-  data = data.rows.slice(0, 10)
+  data = data.rows
 
   // List of subgroups = header of the csv files = soil condition here
   var subgroups = columns.slice(1)
@@ -159,6 +159,7 @@ function buildChart(parent, data, periods, tooltip) {
     }
     return 0
   })
+  data = data.slice(0, 10)
   const maxPercentage = getUpperLimit(data)
 
   // List of groups = species here = value of the first column called group -> I show them on the X axis
