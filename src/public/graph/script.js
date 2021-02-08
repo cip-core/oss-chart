@@ -307,6 +307,7 @@ function buildChart(parent, data, periods, tooltip) {
     svgHeight = sum
   }
   svg1.attr("width", legendWidth)
+  svg1.attr("height", legendHeight)
 
   legend = legend.selectAll("g")
     .data(subgroups)
