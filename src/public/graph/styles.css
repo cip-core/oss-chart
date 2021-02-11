@@ -4,13 +4,13 @@
     position: relative;
 }
 
-.graph div:nth-child(1) {
+.graph > div:nth-child(1) {
     position: absolute;
     top: 0;
     right: 0;
 }
 
-.graph div:nth-child(2) {
+.graph > div:nth-child(2) {
     position: absolute;
     top: 0;
     left: 0;
@@ -19,7 +19,7 @@
     overflow-x: hidden;
 }
 
-.graph div:nth-child(2):hover {
+.graph > div:nth-child(2):hover {
     overflow-x: scroll;
 }
 
