@@ -1,4 +1,5 @@
 .lds-ring {
+    position: relative !important;
     display: table;
     text-align: center;
     width: 80px;
