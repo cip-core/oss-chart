@@ -241,9 +241,7 @@ function buildChart(parent, data, periods, tooltip) {
       return height;
     })
     .on("mouseout", function(d) {
-      tooltip.transition()
-        .duration(500)
-        .style("opacity", 0);
+      fadeOutTooltip(tooltip)
     })
 
   chartRect.on("mouseover", function (d) {
@@ -263,7 +261,7 @@ function buildChart(parent, data, periods, tooltip) {
   const currentKind = parent.getAttribute('data-kind')
   const expectedKind = getExceptedKind(currentKind)
 
-  if (parent.getAttribute('data-clickable') !== null) {
+  if (parent.getAttribute('data-clickable') === null) {
     chartRect.on("click", function (d) {
       const query = {}
       query[currentKind] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
@@ -272,6 +270,7 @@ function buildChart(parent, data, periods, tooltip) {
     })
   } else {
     chartRect.on("click", async function (d) {
+      fadeOutTooltip(tooltip)
       const query = {}
       query[`data-kind`] = expectedKind
       query[`data-${currentKind}`] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
@@ -468,6 +467,12 @@ function insertDefaultComment(parent) {
 
   parent.insertBefore(element, parent.firstChild)
   return element
+}
+
+function fadeOutTooltip(tooltip) {
+  tooltip.transition()
+      .duration(500)
+      .style("opacity", 0);
 }
 
 function openInNewPage(parent, kind, query) {
