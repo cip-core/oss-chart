@@ -95,7 +95,7 @@ The script will look for tags with class `graph` and insert SVG elements into it
 |`data-components`|If `data-kind` set to `companies`, list of components to retrieve information for the given company in `data-name` (comma-separated values). Can be `all` for all components||
 |`data-companies`|If `data-kind` set to `components` or `stack`, list of components to retrieve information for the given company in `data-name` (comma-separated values). Can be `all` for all companies||
 |`data-stack`|If `data-kind` set to `companies`, stack to retrieve information for the given company in `data-name` (single stack name)||
-|`data-clickable`|Set this attribute if graph should be clickable, then redirect to a detailed view of this element||
+|`data-clickable`|When graph is clicked, set this attribute if user should be redirected to a new page. If not set, graph is loaded in same page||
 
 (1) : See details at [Devstats website](https://devstats.cncf.io)
 
