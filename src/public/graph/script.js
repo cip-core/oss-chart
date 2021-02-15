@@ -266,16 +266,21 @@ function buildChart(parent, data, periods, tooltip) {
       const query = {}
       query[currentKind] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
       query['dataName'] = d.short || d.name
+
       openInNewPage(parent, expectedKind, query)
     })
   } else {
     chartRect.on("click", async function (d) {
-      fadeOutTooltip(tooltip)
       const query = {}
-      query[`data-kind`] = expectedKind
+      query['data-kind'] = expectedKind
       query[`data-${currentKind}`] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
       query['data-name'] = d.short || d.name
-      await reloadSamePage(parent, expectedKind, query)
+
+      fadeOutTooltip(tooltip)
+
+      const page = await reloadSamePage(parent, expectedKind, query)
+      updatePageTitle(page, query['data-kind'], query['data-name'])
+      updateGraphs(false, false)
     })
   }
 
@@ -483,9 +488,27 @@ function openInNewPage(parent, kind, query) {
 }
 
 async function reloadSamePage(parent, kind, query) {
+  const queryString = new URLSearchParams(window.location.search)
+  for (const key of Object.keys(query)) {
+    queryString.set(key, query[key])
+  }
+  queryString.set('graphRedirected', 'true')
+  window.history.pushState({}, '', window.location.href.split('?')[0] + '?' + queryString)
+
   const page = parent.parentElement
-  const response = await fetch(`${apiBaseUrl}/graph/template.html`)
-  page.innerHTML = await response.text()
+
+  const loading = createLoading()
+  loading.style.margin = '0 auto'
+  page.innerHTML = ''
+  page.appendChild(loading)
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/graph/template.html`)
+    page.innerHTML = await response.text()
+  } catch (e) {
+    page.removeChild(loading)
+  }
+
   const attributes = parent.attributes
   const graphDiv = document.createElement('div')
   for (const attr of attributes) {
@@ -494,14 +517,15 @@ async function reloadSamePage(parent, kind, query) {
       graphDiv.setAttribute(name, attr.value)
     }
   }
-  const dataName = query['data-name']
   for (const key of Object.keys(query)) {
     graphDiv.setAttribute(key, query[key])
   }
 
   page.appendChild(graphDiv)
-  updateGraphs()
+  return page
+}
 
+async function updatePageTitle(page, kind, dataName) {
   const title = page.querySelectorAll('h2')[0]
   if (kind === 'companies') {
     const company = (await loadCompanies()).filter(name => name === dataName)[0]
@@ -559,7 +583,7 @@ async function loadStack(name) {
   return await callApi('GET', `${apiBaseUrl}/stacks/${name}/details`)
 }
 
-function updateGraphs(keepComment = false) {
+async function updateGraphs(keepComment = false, handleRedirect = true) {
   let tooltip = d3.select("#graphTooltip");
   if (tooltip.empty()) {
     tooltip = d3.select("body").append("div")
@@ -567,6 +591,23 @@ function updateGraphs(keepComment = false) {
       .attr("class", "tooltip")
       .style("opacity", 0);
   }
+
+  if (handleRedirect) {
+    const queryString = new URLSearchParams(window.location.search)
+    if (queryString.get('graphRedirected') === 'true') {
+      const graph = document.querySelector('div.graph')
+      console.log(graph)
+      const query = {}
+      for (const key of queryString.keys()) {
+        if (key.indexOf('data-') === 0) {
+          query[key] = queryString.get(key)
+        }
+      }
+      const page = await reloadSamePage(graph, query['data-kind'], query)
+      updatePageTitle(page, query['data-kind'], query['data-name'])
+    }
+  }
+
   const divs = document.querySelectorAll('div.graph')
   for (const div of divs) {
     if (keepComment) {
