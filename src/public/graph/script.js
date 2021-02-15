@@ -241,47 +241,46 @@ function buildChart(parent, data, periods, tooltip) {
       return height;
     })
     .on("mouseout", function(d) {
-      tooltip.transition()
-        .duration(500)
-        .style("opacity", 0);
+      fadeOutTooltip(tooltip)
     })
 
-  if (parent.getAttribute('data-clickable') !== null) {
-    chartRect.on("mouseover", function (d) {
-      d3.select(this).style("cursor", "pointer")
-      tooltip.transition()
+  chartRect.on("mouseover", function (d) {
+    d3.select(this).style("cursor", "pointer")
+    tooltip.transition()
         .duration(200)
         .style("opacity", .9);
-      const time = periods.filter(o => o.short === d.key)[0]
-      const text = `Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
+    const time = periods.filter(o => o.short === d.key)[0]
+    const text = `Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
         + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
         + `Click for more details`
-      tooltip.html(text)
+    tooltip.html(text)
         .style("left", (d3.event.pageX) + "px")
         .style("top", (d3.event.pageY - 28) + "px");
-    })
-    .on("click", function (d) {
-      const pathArray = window.location.pathname.split('/')
-      const stack = pathArray.slice(0, pathArray.length - 1)
-      const currentKind = parent.getAttribute('data-kind')
-      const expectedKind = getExceptedKind(currentKind)
+  })
+
+  const currentKind = parent.getAttribute('data-kind')
+  const expectedKind = getExceptedKind(currentKind)
+
+  if (parent.getAttribute('data-clickable') !== null) {
+    chartRect.on("click", function (d) {
       const query = {}
-      query['dataName'] = d.short || d.name
       query[currentKind] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
-      const endUrl = `/${expectedKind}?${new URLSearchParams(query).toString()}`
-      window.open(window.location.origin + stack.join('/') + endUrl, '_blank')
+      query['dataName'] = d.short || d.name
+
+      openInNewPage(parent, expectedKind, query)
     })
   } else {
-    chartRect.on("mouseover", function (d) {
-      tooltip.transition()
-        .duration(200)
-        .style("opacity", .9);
-      const time = periods.filter(o => o.short === d.key)[0]
-      const text = `Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
-        + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
-      tooltip.html(text)
-        .style("left", (d3.event.pageX) + "px")
-        .style("top", (d3.event.pageY - 28) + "px");
+    chartRect.on("click", async function (d) {
+      const query = {}
+      query['data-kind'] = expectedKind
+      query[`data-${currentKind}`] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
+      query['data-name'] = d.short || d.name
+
+      fadeOutTooltip(tooltip)
+
+      const page = await reloadSamePage(parent, expectedKind, query)
+      updatePageTitle(page, query['data-kind'], query['data-name'])
+      updateGraphs(false, false)
     })
   }
 
@@ -475,7 +474,116 @@ function insertDefaultComment(parent) {
   return element
 }
 
-function updateGraphs(keepComment = false) {
+function fadeOutTooltip(tooltip) {
+  tooltip.transition()
+      .duration(500)
+      .style("opacity", 0);
+}
+
+function openInNewPage(parent, kind, query) {
+  const pathArray = window.location.pathname.split('/')
+  const stack = pathArray.slice(0, pathArray.length - 1)
+  const endUrl = `/${kind}?${new URLSearchParams(query).toString()}`
+  window.open(window.location.origin + stack.join('/') + endUrl, '_self')
+}
+
+async function reloadSamePage(parent, kind, query) {
+  const queryString = new URLSearchParams(window.location.search)
+  for (const key of Object.keys(query)) {
+    queryString.set(key, query[key])
+  }
+  queryString.set('graphRedirected', 'true')
+  window.history.pushState({}, '', window.location.href.split('?')[0] + '?' + queryString)
+
+  const page = parent.parentElement
+
+  const loading = createLoading()
+  loading.style.margin = '0 auto'
+  page.innerHTML = ''
+  page.appendChild(loading)
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/graph/template.html`)
+    page.innerHTML = await response.text()
+  } catch (e) {
+    page.removeChild(loading)
+  }
+
+  const attributes = parent.attributes
+  const graphDiv = document.createElement('div')
+  for (const attr of attributes) {
+    const name = attr.name
+    if (name === 'class' || name.indexOf('data-') === 0) {
+      graphDiv.setAttribute(name, attr.value)
+    }
+  }
+  for (const key of Object.keys(query)) {
+    graphDiv.setAttribute(key, query[key])
+  }
+
+  page.appendChild(graphDiv)
+  return page
+}
+
+async function updatePageTitle(page, kind, dataName) {
+  const title = page.querySelectorAll('h2')[0]
+  if (kind === 'companies') {
+    const company = (await loadCompanies()).filter(name => name === dataName)[0]
+    if (company) {
+      title.innerHTML = `Analysis of contributions of ${company}`;
+    }
+  } else if (kind === 'stack') {
+    const stack = await loadStack(dataName)
+    if (stack) {
+      title.innerHTML = `Analysis of contributions to ${stack.name}`
+    }
+  } else if (kind === 'components') {
+    const component = (await loadComponents()).filter(component => component.short === dataName)[0]
+    if (component) {
+      title.innerHTML = `Analysis of contributions to ${component.name}${component.svg}`
+      document.getElementById('itemLink').href = component.href
+    }
+  }
+}
+
+function sortByName(a, b) {
+  const aName = (a.name || a).toLowerCase();
+  const bName = (b.name || b).toLowerCase();
+
+  if (aName === bName) return 0;
+
+  const aLatin = isLatinLetter(aName[0]);
+  const bLatin = isLatinLetter(bName[0]);
+
+  if (aLatin && !bLatin) return -1;
+  else if (!aLatin && bLatin) return 1;
+
+  return aName < bName ? -1 : 1;
+}
+
+function isLatinLetter(letter) {
+  return letter.toUpperCase() !== letter.toLowerCase()
+}
+
+async function loadComponents() {
+  const components = await callApi('GET', `${apiBaseUrl}/components`)
+  components.sort(sortByName) // Sort alphabetically
+
+  return components
+}
+
+async function loadCompanies() {
+  const companies = await callApi('GET', `${apiBaseUrl}/companies`)
+  companies.sort(sortByName) // Sort alphabetically
+
+  return companies
+}
+
+async function loadStack(name) {
+  return await callApi('GET', `${apiBaseUrl}/stacks/${name}/details`)
+}
+
+async function updateGraphs(keepComment = false, handleRedirect = true) {
   let tooltip = d3.select("#graphTooltip");
   if (tooltip.empty()) {
     tooltip = d3.select("body").append("div")
@@ -483,6 +591,23 @@ function updateGraphs(keepComment = false) {
       .attr("class", "tooltip")
       .style("opacity", 0);
   }
+
+  if (handleRedirect) {
+    const queryString = new URLSearchParams(window.location.search)
+    if (queryString.get('graphRedirected') === 'true') {
+      const graph = document.querySelector('div.graph')
+      console.log(graph)
+      const query = {}
+      for (const key of queryString.keys()) {
+        if (key.indexOf('data-') === 0) {
+          query[key] = queryString.get(key)
+        }
+      }
+      const page = await reloadSamePage(graph, query['data-kind'], query)
+      updatePageTitle(page, query['data-kind'], query['data-name'])
+    }
+  }
+
   const divs = document.querySelectorAll('div.graph')
   for (const div of divs) {
     if (keepComment) {
