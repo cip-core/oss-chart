@@ -1,3 +1,9 @@
+h2 > svg {
+    height: 1em;
+    vertical-align: top;
+    margin-left: .25em;
+}
+
 .itemsList {
     margin: 0;
     list-style-type: none;
