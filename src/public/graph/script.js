@@ -517,6 +517,25 @@ async function reloadSamePage(parent, kind, query) {
   }
 }
 
+function sortByName(a, b) {
+  const aName = (a.name || a).toLowerCase();
+  const bName = (b.name || b).toLowerCase();
+
+  if (aName === bName) return 0;
+
+  const aLatin = isLatinLetter(aName[0]);
+  const bLatin = isLatinLetter(bName[0]);
+
+  if (aLatin && !bLatin) return -1;
+  else if (!aLatin && bLatin) return 1;
+
+  return aName < bName ? -1 : 1;
+}
+
+function isLatinLetter(letter) {
+  return letter.toUpperCase() !== letter.toLowerCase()
+}
+
 async function loadComponents() {
   const components = await callApi('GET', `${apiBaseUrl}/components`)
   components.sort(sortByName) // Sort alphabetically
