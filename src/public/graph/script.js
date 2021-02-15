@@ -261,7 +261,7 @@ function buildChart(parent, data, periods, tooltip) {
   const currentKind = parent.getAttribute('data-kind')
   const expectedKind = getExceptedKind(currentKind)
 
-  if (parent.getAttribute('data-clickable') === null) {
+  if (parent.getAttribute('data-clickable') !== null) {
     chartRect.on("click", function (d) {
       const query = {}
       query[currentKind] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
