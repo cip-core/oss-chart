@@ -159,7 +159,9 @@ function buildChart(parent, data, periods, tooltip) {
     }
     return 0
   })
-  data = data.slice(0, 10)
+
+  const limitElements = parent.getAttribute('data-limit') || 10
+  data = data.slice(0, limitElements)
   const maxPercentage = getUpperLimit(data)
 
   // List of groups = species here = value of the first column called group -> I show them on the X axis
