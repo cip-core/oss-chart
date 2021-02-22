@@ -138,6 +138,10 @@ function buildChart(parent, data, periods, tooltip) {
   firstDiv.classList.add('svgLegend')
   const secondDiv = document.createElement('div')
   secondDiv.classList.add('svgChart')
+  const containerDiv = document.createElement('div')
+  containerDiv.classList.add('svgContainer')
+  containerDiv.append(firstDiv)
+  containerDiv.append(secondDiv)
 
   let columns = data.columns
   data = data.rows
@@ -347,8 +351,7 @@ function buildChart(parent, data, periods, tooltip) {
     .style("text-anchor", "middle")
     .text("Percentage");
 
-  parent.append(firstDiv)
-  parent.append(secondDiv)
+  parent.append(containerDiv)
 
   d3.select(firstDiv).append(() => svg1.node())
   d3.select(secondDiv).append(() => svg2.node())
@@ -363,9 +366,8 @@ function buildChart(parent, data, periods, tooltip) {
 
   svgHeight = svgHeight + lines.max * 11
   svg2.attr("height", svgHeight)
-  secondDiv.style.height = svgHeight
-  parent.style.height = `${svgHeight}px`
-  parent.style.maxWidth = `${svgWidth}px`
+  containerDiv.style.height = `${svgHeight + 20}px`
+  containerDiv.style.maxWidth = `${svgWidth}px`
 }
 
 function wrap(text, width, lines) {

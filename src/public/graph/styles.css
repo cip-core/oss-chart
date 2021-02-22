@@ -1,16 +1,19 @@
 @import "loading.css";
 
 .graph {
+}
+
+.svgContainer {
     position: relative;
 }
 
-.graph > .svgLegend {
+.svgContainer > .svgLegend {
     position: absolute;
     top: 0;
     right: 0;
 }
 
-.graph > .svgChart {
+.svgContainer > .svgChart {
     position: absolute;
     top: 0;
     left: 0;
@@ -19,7 +22,7 @@
     overflow-x: hidden;
 }
 
-.graph > .svgChart:hover {
+.svgContainer > .svgChart:hover {
     overflow-x: scroll;
 }
 
