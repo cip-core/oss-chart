@@ -135,7 +135,9 @@ async function callApi(method, url, data) {
 
 function buildChart(parent, data, periods, tooltip) {
   const firstDiv = document.createElement('div')
+  firstDiv.classList.add('svgLegend')
   const secondDiv = document.createElement('div')
+  secondDiv.classList.add('svgChart')
 
   let columns = data.columns
   data = data.rows
