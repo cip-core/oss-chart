@@ -13,11 +13,17 @@
     right: 0;
 }
 
-.svgContainer > .svgChart {
+.svgContainer > .svgAxis {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
+}
+
+.svgContainer > .svgChart {
+    position: absolute;
+    top: 0;
+    left: 40px;
+    width: calc(100% - 40px);
     height: 100%;
     overflow-x: hidden;
 }

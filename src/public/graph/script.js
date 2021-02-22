@@ -138,10 +138,13 @@ function buildChart(parent, data, periods, tooltip) {
   firstDiv.classList.add('svgLegend')
   const secondDiv = document.createElement('div')
   secondDiv.classList.add('svgChart')
+  const thirdDiv = document.createElement('div')
+  thirdDiv.classList.add('svgAxis')
   const containerDiv = document.createElement('div')
   containerDiv.classList.add('svgContainer')
   containerDiv.append(firstDiv)
   containerDiv.append(secondDiv)
+  containerDiv.append(thirdDiv)
 
   let columns = data.columns
   data = data.rows
@@ -188,13 +191,13 @@ function buildChart(parent, data, periods, tooltip) {
   // append the svg object to the body of the page
   let svg2 = d3.create('svg')
   svg2
-    .attr("width", svgWidth)
+    .attr("width", chartWidth - margin.left)
     .attr("height", svgHeight)
 
   // Add X axis
   let x = d3.scaleBand()
     .domain(groups)
-    .range([0, chartWidth ])
+    .range([0, chartWidth - margin.left ])
     .padding([1 / (subgroups.length + 1)])
 
   // Add Y axis
@@ -222,7 +225,7 @@ function buildChart(parent, data, periods, tooltip) {
     .data(data)
     .enter()
     .append("g")
-    .attr("transform", function(d) { return `translate(${x(d[columns[0]]) + margin.left}, ${margin.top})`; })
+    .attr("transform", function(d) { return `translate(${x(d[columns[0]])}, ${margin.top})`; })
     .selectAll("rect")
     .data(function(d) {
       return subgroups.map(function(key) {
@@ -338,12 +341,13 @@ function buildChart(parent, data, periods, tooltip) {
     .attr("text-anchor", "left")
     .style("alignment-baseline", "middle")
 
-
-  svg2.append("g")
+  const svg3 = d3.create('svg')
+  svg3.attr('height', svgHeight)
+  svg3.append("g")
     .attr("transform", `translate(${margin.left}, ${margin.top})`)
     .call(d3.axisLeft(y));
 
-  svg2.append("text")
+  svg3.append("text")
     .attr("transform", "rotate(-90)")
     .attr("y", yAxisLabelWidth)
     .attr("x", 0 - (chartHeight / 2))
@@ -355,11 +359,15 @@ function buildChart(parent, data, periods, tooltip) {
 
   d3.select(firstDiv).append(() => svg1.node())
   d3.select(secondDiv).append(() => svg2.node())
+  d3.select(thirdDiv).append(() => svg3.node())
 
+  const bbox = svg3.node().getBBox()
+  svg3.attr('width', bbox.width + 5)
+      .attr('height', bbox.height + 5)
   const lines = {}
   lines.max = 0
   svg2.append("g")
-    .attr("transform", `translate(${margin.left}, ${chartHeight + margin.top})`)
+    .attr("transform", `translate(${0}, ${chartHeight + margin.top})`)
     .call(d3.axisBottom(x).tickSize(0))
     .selectAll(".tick text")
     .call(wrap, x.bandwidth(), lines)
@@ -367,7 +375,7 @@ function buildChart(parent, data, periods, tooltip) {
   svgHeight = svgHeight + lines.max * 11
   svg2.attr("height", svgHeight)
   containerDiv.style.height = `${svgHeight + 20}px`
-  containerDiv.style.maxWidth = `${svgWidth}px`
+  containerDiv.style.maxWidth = `${svgWidth - margin.left}px`
 }
 
 function wrap(text, width, lines) {
