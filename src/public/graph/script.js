@@ -134,18 +134,6 @@ async function callApi(method, url, data) {
 }
 
 function buildChart(parent, data, periods, tooltip) {
-  const firstDiv = document.createElement('div')
-  firstDiv.classList.add('svgLegend')
-  const secondDiv = document.createElement('div')
-  secondDiv.classList.add('svgChart')
-  const thirdDiv = document.createElement('div')
-  thirdDiv.classList.add('svgAxis')
-  const containerDiv = document.createElement('div')
-  containerDiv.classList.add('svgContainer')
-  containerDiv.append(firstDiv)
-  containerDiv.append(secondDiv)
-  containerDiv.append(thirdDiv)
-
   let columns = data.columns
   data = data.rows
 
@@ -355,11 +343,25 @@ function buildChart(parent, data, periods, tooltip) {
     .style("text-anchor", "middle")
     .text("Percentage");
 
+  const legendDiv = document.createElement('div')
+  legendDiv.classList.add('svgLegend')
+  const chartDiv = document.createElement('div')
+  chartDiv.classList.add('svgChart')
+  const leftAxisDiv = document.createElement('div')
+  leftAxisDiv.classList.add('svgAxis')
+
+  const containerDiv = document.createElement('div')
+  containerDiv.classList.add('svgContainer')
+
+  containerDiv.append(legendDiv)
+  containerDiv.append(chartDiv)
+  containerDiv.append(leftAxisDiv)
+
   parent.append(containerDiv)
 
-  d3.select(firstDiv).append(() => svg1.node())
-  d3.select(secondDiv).append(() => svg2.node())
-  d3.select(thirdDiv).append(() => svg3.node())
+  d3.select(legendDiv).append(() => svg1.node())
+  d3.select(chartDiv).append(() => svg2.node())
+  d3.select(leftAxisDiv).append(() => svg3.node())
 
   const bbox = svg3.node().getBBox()
   svg3.attr('width', bbox.width + 5)
