@@ -86,16 +86,18 @@ Then call the `updateGraphs()` Javascript function wherever in the `body` of you
 
 The script will look for tags with class `graph` and insert SVG elements into it. These tags can have following custom attributes in order to configure which data should be retrieved :
    
-| Attribute | Description | Required |
-|---|---|:-:|
-|`data-kind`|Kind of data to display. Should be either `companies`, `components` or `stack`|x|
-|`data-name`|Name of the data to retrieve (example: `k8s` for Kubernetes component, or `IBM` for IBM company)|x|
-|`data-metric`|Metric to retrieve (1)|x|
-|`data-periods`|List of periods to retrieve (1), separated by comma (example: `w` for week, `m` for month, `q` for quarter, `y` for year, `y10` for decade)|x|
-|`data-components`|If `data-kind` set to `companies`, list of components to retrieve information for the given company in `data-name` (comma-separated values). Can be `all` for all components||
-|`data-companies`|If `data-kind` set to `components` or `stack`, list of components to retrieve information for the given company in `data-name` (comma-separated values). Can be `all` for all companies||
-|`data-stack`|If `data-kind` set to `companies`, stack to retrieve information for the given company in `data-name` (single stack name)||
-|`data-clickable`|When graph is clicked, set this attribute if user should be redirected to a new page. If not set, graph is loaded in same page||
+| Attribute | Description | Default value | Required |
+|---|---|:-:|:-:|
+|`data-kind`|Kind of data to display. Should be either `companies`, `components` or `stack`||x|
+|`data-name`|Name of the data to retrieve (example: `k8s` for Kubernetes component, or `IBM` for IBM company)||x|
+|`data-metric`|Metric to retrieve (1)||x|
+|`data-periods`|List of periods to retrieve (1), separated by comma (example: `w` for week, `m` for month, `q` for quarter, `y` for year, `y10` for decade)||x|
+|`data-components`|If `data-kind` set to `companies`, list of components to retrieve information for the given company in `data-name` (comma-separated values). Can be `all` for all components|||
+|`data-companies`|If `data-kind` set to `components` or `stack`, list of components to retrieve information for the given company in `data-name` (comma-separated values). Can be `all` for all companies|||
+|`data-stack`|If `data-kind` set to `companies`, stack to retrieve information for the given company in `data-name` (single stack name)|||
+|`data-limit`|Max number of elements to be displayed in graph|10||
+|`data-inverted`|Inverts data between item and time period, i.e. group by time interval (boolean)|false||
+|`data-clickable`|When graph is clicked, set this attribute if user should be redirected to a new page. If not set, graph is loaded in same page|||
 
 (1) : See details at [Devstats website](https://devstats.cncf.io)
 

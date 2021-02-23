@@ -1,25 +1,34 @@
 @import "loading.css";
 
 .graph {
+}
+
+.svgContainer {
     position: relative;
 }
 
-.graph > div:nth-child(1) {
+.svgContainer > .svgLegend {
     position: absolute;
     top: 0;
     right: 0;
 }
 
-.graph > div:nth-child(2) {
+.svgContainer > .svgAxis {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
+}
+
+.svgContainer > .svgChart {
+    position: absolute;
+    top: 0;
+    left: 40px;
+    width: calc(100% - 40px);
     height: 100%;
     overflow-x: hidden;
 }
 
-.graph > div:nth-child(2):hover {
+.svgContainer > .svgChart:hover {
     overflow-x: scroll;
 }
 
