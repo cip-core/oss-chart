@@ -234,7 +234,8 @@ function buildChart(parent, data, periods, tooltip) {
 
   // color palette = one color per subgroup
   const colorPalette = d3.schemeSet1
-  colorPalette[5] = '#303030' // change yellow to dark grey
+  colorPalette[5] = '#e8c500' // change yellow to dark yellow
+  if (colorPalette.length === 9) colorPalette.push('#303030') // add dark grey
   let color = d3.scaleOrdinal()
     .domain(subgroups)
     .range(colorPalette)
