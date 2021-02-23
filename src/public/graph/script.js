@@ -77,7 +77,12 @@ async function updateGraph(div, tooltip) {
 
   if (response.data.rows.length > 0) {
     // Build Chart
-    buildChart(div, response.data, times.filter(t => periods.indexOf(t.short) !== -1), tooltip)
+    let periodsDict = {}
+    const periodsArray = times.filter(t => periods.indexOf(t.short) !== -1)
+    for (const p of periodsArray) {
+      periodsDict[p.short] = p.long
+    }
+    buildChart(div, response.data, periodsDict, tooltip)
   }
 }
 
@@ -134,20 +139,22 @@ async function callApi(method, url, data) {
 }
 
 function buildChart(parent, data, periods, tooltip) {
+  let invertedData = parent.getAttribute('data-inverted') !== null
+
   let columns = data.columns
   data = data.rows
 
   // List of subgroups = header of the csv files = soil condition here
   let subgroups = columns.slice(1)
   // Sort columns according to "times" list
-  const shortTimes = periods.map(t => t.short)
-  subgroups.sort(function(a, b) {
+  const shortTimes = Object.keys(periods)
+  subgroups.sort(function (a, b) {
     return shortTimes.indexOf(a) < shortTimes.indexOf(b) ? 1 : -1
   })
 
   // Transform data to percentage
   data = transformPercentage(data, subgroups)
-  data.sort(function(a, b) {
+  data.sort(function (a, b) {
     for (const subgroup of subgroups) {
       const aValue = a[subgroup].percentage
       const bValue = b[subgroup].percentage
@@ -157,13 +164,39 @@ function buildChart(parent, data, periods, tooltip) {
     return 0
   })
 
-  const limitElements = parent.getAttribute('data-limit') || 10
+  const limitElements = parent.getAttribute('data-limit') || 10
   data = data.slice(0, limitElements)
   const maxPercentage = getUpperLimit(data)
 
+  if (invertedData) {
+    let newSubgroups = data.map(d => d.name)
+    const dict = {}
+    for (const row of data) {
+      for (const subgroup of subgroups) {
+        let values = dict[subgroup]
+        if (!values) {
+          values = {}
+          dict[subgroup] = values
+        }
+        const rowSubgroup = row[subgroup]
+        rowSubgroup.short = row.short
+        values[row.name] = rowSubgroup
+      }
+    }
+
+    data = Object.entries(dict).map(function (entry) {
+      return Object.assign({name: entry[0]}, entry[1])
+    })
+    subgroups = newSubgroups
+    columns = ["name"].concat(subgroups)
+  }
+
+  const firstColumn = columns[0]
   // List of groups = species here = value of the first column called group -> I show them on the X axis
-  let groups = d3.map(data, function(d){return(d[columns[0]])}).keys()
-  //groups = groups.map(name => name.split(" ").join('\n'))
+  let groups = d3.map(data, function(d){return(d[firstColumn])}).keys()
+  if (invertedData) {
+    groups = groups.map(p => periods[p])
+  }
 
   const yAxisLabelWidth = 10
   // set the dimensions and margins of the graph
@@ -208,25 +241,34 @@ function buildChart(parent, data, periods, tooltip) {
   // Show the bars
   const chart = svg2.append("g")
     .attr("class", "chart")
-  const chartRect = chart.selectAll("g")
+
+  let chartRect = chart.selectAll("g")
   // Enter in data = loop group per group
     .data(data)
     .enter()
-    .append("g")
-    .attr("transform", function(d) { return `translate(${x(d[columns[0]])}, ${margin.top})`; })
-    .selectAll("rect")
+    .append("g");
+
+  if (invertedData) {
+    chartRect.attr("transform", function(d) { return `translate(${x(periods[d[firstColumn]])}, ${margin.top})`; })
+  } else {
+    chartRect.attr("transform", function(d) { return `translate(${x(d[firstColumn])}, ${margin.top})`; })
+  }
+
+  chartRect = chartRect.selectAll("rect")
     .data(function(d) {
       return subgroups.map(function(key) {
         const subgroupValue = d[key]
-        return {
+        const out = {
           key: key,
           value: subgroupValue.value,
           percentage: subgroupValue.percentage,
           updatedAt: d.updatedAt,
           name: d.name,
           short: d.short,
-          isLast: d[columns[0]] === groups[groups.length - 1],
-        };
+          isLast: d[firstColumn] === groups[groups.length - 1],
+        }
+        if (invertedData) out.short = subgroupValue.short || key
+        return out;
       });
     })
     .enter().append("rect")
@@ -243,19 +285,34 @@ function buildChart(parent, data, periods, tooltip) {
       fadeOutTooltip(tooltip)
     })
 
-  chartRect.on("mouseover", function (d) {
-    d3.select(this).style("cursor", "pointer")
-    tooltip.transition()
-        .duration(200)
-        .style("opacity", .9);
-    const time = periods.filter(o => o.short === d.key)[0]
-    const text = `Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
-        + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
-        + `Click for more details`
-    tooltip.html(text)
-        .style("left", (d3.event.pageX) + "px")
-        .style("top", (d3.event.pageY - 28) + "px");
-  })
+  if (invertedData) {
+    chartRect.on("mouseover", function (d) {
+      d3.select(this).style("cursor", "pointer")
+      tooltip.transition()
+          .duration(200)
+          .style("opacity", .9);
+      const text = `${d.key} : ${d.value} (${d.percentage}%)<br>`
+          + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
+          + `Click for more details`
+      tooltip.html(text)
+          .style("left", (d3.event.pageX) + "px")
+          .style("top", (d3.event.pageY - 28) + "px");
+    })
+  } else {
+    chartRect.on("mouseover", function (d) {
+      d3.select(this).style("cursor", "pointer")
+      tooltip.transition()
+          .duration(200)
+          .style("opacity", .9);
+      const time = periods[d.key]
+      const text = `Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
+          + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
+          + `Click for more details`
+      tooltip.html(text)
+          .style("left", (d3.event.pageX) + "px")
+          .style("top", (d3.event.pageY - 28) + "px");
+    })
+  }
 
   const currentKind = parent.getAttribute('data-kind')
   const expectedKind = getExceptedKind(currentKind)
@@ -265,6 +322,7 @@ function buildChart(parent, data, periods, tooltip) {
       const query = {}
       query[currentKind] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
       query['dataName'] = d.short || d.name
+      if (invertedData) query['dataInverted'] = invertedData
 
       openInNewPage(parent, expectedKind, query)
     })
@@ -274,6 +332,7 @@ function buildChart(parent, data, periods, tooltip) {
       query['data-kind'] = expectedKind
       query[`data-${currentKind}`] = currentKind === 'stack' ? parent.getAttribute('data-name') : 'all'
       query['data-name'] = d.short || d.name
+      if (invertedData) query['data-inverted'] = ''
 
       fadeOutTooltip(tooltip)
 
@@ -323,8 +382,9 @@ function buildChart(parent, data, periods, tooltip) {
     .attr("y", function(d,i){ return 0 + i * (size + spaceBetween) + (size / 2)}) // 0 is where the first dot appears. 5 is the distance between dots
     .style("fill", function(d){ return color(d)})
     .text(function(d){
-      const time = periods.filter(o => o.short === d)[0]
-      return time.long[0].toUpperCase() + time.long.slice(1)
+      if (invertedData) return d
+      const time = periods[d]
+      return time[0].toUpperCase() + time.slice(1)
     })
     .attr("text-anchor", "left")
     .style("alignment-baseline", "middle")
@@ -362,6 +422,8 @@ function buildChart(parent, data, periods, tooltip) {
   d3.select(legendDiv).append(() => svg1.node())
   d3.select(chartDiv).append(() => svg2.node())
   d3.select(leftAxisDiv).append(() => svg3.node())
+
+  svg1.attr('width', svg1.node().getBBox().width)
 
   const bbox = svg3.node().getBBox()
   svg3.attr('width', bbox.width + 5)
@@ -612,7 +674,6 @@ async function updateGraphs(keepComment = false, handleRedirect = true) {
     const queryString = new URLSearchParams(window.location.search)
     if (queryString.get('graphRedirected') === 'true') {
       const graph = document.querySelector('div.graph')
-      console.log(graph)
       const query = {}
       for (const key of queryString.keys()) {
         if (key.indexOf('data-') === 0) {
@@ -621,6 +682,10 @@ async function updateGraphs(keepComment = false, handleRedirect = true) {
       }
       const page = await reloadSamePage(graph, query['data-kind'], query)
       updatePageTitle(page, query['data-kind'], query['data-name'])
+    }
+    if (queryString.get('dataInverted') === 'true') {
+      const graphs = document.querySelectorAll('div.graph')
+      graphs.forEach(graph => graph.setAttribute('data-inverted', ''))
     }
   }
 

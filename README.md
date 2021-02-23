@@ -96,6 +96,7 @@ The script will look for tags with class `graph` and insert SVG elements into it
 |`data-companies`|If `data-kind` set to `components` or `stack`, list of components to retrieve information for the given company in `data-name` (comma-separated values). Can be `all` for all companies|||
 |`data-stack`|If `data-kind` set to `companies`, stack to retrieve information for the given company in `data-name` (single stack name)|||
 |`data-limit`|Max number of elements to be displayed in graph|10||
+|`data-inverted`|Inverts data between item and time period, i.e. group by time interval (boolean)|false||
 |`data-clickable`|When graph is clicked, set this attribute if user should be redirected to a new page. If not set, graph is loaded in same page|||
 
 (1) : See details at [Devstats website](https://devstats.cncf.io)
