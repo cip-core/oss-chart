@@ -413,9 +413,9 @@ function buildChart(parent, data, periods, tooltip) {
   const containerDiv = document.createElement('div')
   containerDiv.classList.add('svgContainer')
 
-  containerDiv.append(legendDiv)
-  containerDiv.append(chartDiv)
   containerDiv.append(leftAxisDiv)
+  containerDiv.append(chartDiv)
+  containerDiv.append(legendDiv)
 
   parent.append(containerDiv)
 
@@ -426,7 +426,7 @@ function buildChart(parent, data, periods, tooltip) {
   svg1.attr('width', svg1.node().getBBox().width)
 
   const bbox = svg3.node().getBBox()
-  svg3.attr('width', bbox.width + 5)
+  svg3.attr('width', bbox.width + 1.5)
       .attr('height', bbox.height + 5)
   const lines = {}
   lines.max = 0
