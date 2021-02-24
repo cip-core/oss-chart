@@ -263,7 +263,7 @@ function buildChart(parent, data, periods, tooltip) {
   const legendWidth = svg3.node().getBBox().width
   svg3.attr('width', legendWidth)
 
-  const chartWidth = svgWidth - margin.left - margin.right - legendWidth - leftAxisPadding
+  const chartWidth = svgWidth - margin.left - margin.right - legendWidth - leftAxisPadding - 1
   // Add X axis
   let x = d3.scaleBand()
       .domain(groups)
@@ -428,20 +428,6 @@ function drawLegend(subgroups, color, size, periods) {
 
   const legendWidth = 35 + spaceBetween + size
   const legendHeight = (size + spaceBetween) * subgroups.length - spaceBetween
-  /*
-  const sum = legendHeight + margin.bottom + spaceBetween // + lastMax
-  if (sum > svgHeight) {
-    if (svgWidth + legendWidth < parent.offsetWidth) {
-      //svg.attr("width", svgWidth + legendWidth)
-      legend = legend.attr("transform", `translate(${svgWidth}, 0)`)
-    } else {
-      //svg.attr("height", sum)
-      chart.attr('transform', `translate(0, ${sum - svgHeight})`)
-      margin.top += sum - svgHeight
-    }
-    svgHeight = sum
-  }
-   */
   svg.attr("width", legendWidth)
   svg.attr("height", legendHeight)
 
