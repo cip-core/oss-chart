@@ -705,10 +705,10 @@ async function updateGraphs(keepComment = false, handleRedirect = true) {
 
   const divs = document.querySelectorAll('div.graph')
   for (const div of divs) {
-    if (keepComment) {
-      const svg = div.querySelector('svg')
-      if (svg) svg.remove()
-    } else {
+    const svgContainer = div.querySelector('.svgContainer')
+    if (svgContainer) svgContainer.remove()
+
+    if (!keepComment) {
       const defaultComment = div.querySelector('.graphComment.default')
       if (!defaultComment) {
         const comments = div.querySelectorAll('.graphComment')
@@ -720,6 +720,7 @@ async function updateGraphs(keepComment = false, handleRedirect = true) {
         if (comments.length > 0) insertDefaultComment(div)
       }
     }
+
     const loading = createLoading()
     div.append(loading)
     const timeoutId = setTimeout(function() {
