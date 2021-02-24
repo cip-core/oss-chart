@@ -69,8 +69,7 @@ async function updateGraph(div, tooltip, loading) {
   const metric = div.getAttribute('data-metric');
 
   // Retrieve data from API
-  const call = callApi('POST', `${apiBaseUrl}/${kind === 'stack' ? 'stacks' : kind}/${item}/${metric}`, body);
-  const response = await longCall(call, loading);
+  const response = await longCall('POST', `${apiBaseUrl}/${kind === 'stack' ? 'stacks' : kind}/${item}/${metric}`, body, loading);
 
   // Remove old chart
   d3.select(div).select('svg').remove()
@@ -86,9 +85,10 @@ async function updateGraph(div, tooltip, loading) {
   }
 }
 
-function longCall(call, loading) {
+function longCall(method, url, body, loading) {
   return new Promise((resolve, reject) => {
     const intervalId = setInterval(async function() {
+      const call = callApi(method, url, body)
       try {
         const response = await timeout(20000, call);
         if (response.updating) {
@@ -97,7 +97,7 @@ function longCall(call, loading) {
             text = document.createElement('text')
             loading.append(text)
           }
-          text.innerHTML = "Updating cache"
+          text.innerHTML = "Updating cache<br>" + `(~${Math.floor(response.wait / 1000)} sec.)`
         } else {
           clearInterval(intervalId)
           resolve(response)
