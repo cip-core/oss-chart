@@ -62,21 +62,29 @@ function shouldUpdateCache(cachedData, periods) {
     return true
   }
 
+  let shouldUpdate = false
+  let allUpdating = true
   for (const period of periods) {
-    const periodCache = cachedData[period]
+    let periodCache = cachedData[period]
     if (!periodCache) {
       // no cache
-      cachedData[period].updateTriggered = new Date()
-      return true
+      periodCache = {}
+      periodCache.updateTriggered = new Date()
+      cachedData[period] = periodCache
+      allUpdating = false
+      shouldUpdate = true
     }
     if (new Date() - periodCache.updatedAt > cacheTime * 60 * 1000) {
       // cache expired
-      periodCache.updateTriggered = new Date()
-      return true
+      if (!periodCache.updateTriggered) {
+        periodCache.updateTriggered = new Date()
+        allUpdating = false
+      }
+      shouldUpdate = true
     }
   }
 
-  return false
+  return { shouldUpdate, allUpdating: shouldUpdate ? allUpdating : false }
 }
 
 async function updateCache(component, metrics, periods) {
@@ -122,10 +130,13 @@ function generateWaitingResponse(type) {
 async function loadData(component, metrics, periods, companies) {
   let cachedData = loadFromCache(component, metrics, periods)
 
-  if (shouldUpdateCache(cachedData, periods)) {
-    updateCache(component, metrics, periods).then(function(data) {
-      cachedData = data
-    })
+  const { shouldUpdate, allUpdating } = shouldUpdateCache(cachedData, periods)
+  if (shouldUpdate) {
+    if (!allUpdating) {
+      updateCache(component, metrics, periods).then(function (data) {
+        cachedData = data
+      })
+    }
     return generateWaitingResponse('data')
   }
 
