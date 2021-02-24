@@ -46,7 +46,7 @@ function getExceptedKind(kind) {
   return kinds[kind];
 }
 
-async function updateGraph(div, tooltip) {
+async function updateGraph(div, tooltip, loading) {
   const item = div.getAttribute('data-name');
   const kind = div.getAttribute('data-kind');
 
@@ -70,7 +70,7 @@ async function updateGraph(div, tooltip) {
 
   // Retrieve data from API
   const call = callApi('POST', `${apiBaseUrl}/${kind === 'stack' ? 'stacks' : kind}/${item}/${metric}`, body);
-  const response = await timeout(20000, call);
+  const response = await longCall(call, loading);
 
   // Remove old chart
   d3.select(div).select('svg').remove()
@@ -84,6 +84,30 @@ async function updateGraph(div, tooltip) {
     }
     buildChart(div, response.data, periodsDict, tooltip)
   }
+}
+
+function longCall(call, loading) {
+  return new Promise((resolve, reject) => {
+    const intervalId = setInterval(async function() {
+      try {
+        const response = await timeout(20000, call);
+        if (response.updating) {
+          let text = loading.querySelector('text')
+          if (!text) {
+            text = document.createElement('text')
+            loading.append(text)
+          }
+          text.innerHTML = "Updating cache"
+        } else {
+          clearInterval(intervalId)
+          resolve(response)
+        }
+      } catch (e) {
+        clearInterval(intervalId)
+        reject(e)
+      }
+    }, refreshRate)
+  })
 }
 
 function timeout(ms, promise) {
@@ -617,24 +641,38 @@ async function reloadSamePage(parent, kind, query) {
   return page
 }
 
+const refreshRate = 2000
+
 async function updatePageTitle(page, kind, dataName) {
   const title = page.querySelectorAll('h2')[0]
   if (kind === 'companies') {
-    const company = (await loadCompanies()).filter(name => name === dataName)[0]
-    if (company) {
-      title.innerHTML = `Analysis of contributions of ${company}`;
-    }
+    const intervalId = setInterval(async function() {
+      const companies = await loadCompanies()
+      if (!companies.updating) {
+        clearInterval(intervalId)
+        const company = companies.filter(name => name === dataName)[0]
+        if (company) {
+          title.innerHTML = `Analysis of contributions of ${company}`;
+        }
+      }
+    }, refreshRate)
   } else if (kind === 'stack') {
     const stack = await loadStack(dataName)
     if (stack) {
       title.innerHTML = `Analysis of contributions to ${stack.name}`
     }
   } else if (kind === 'components') {
-    const component = (await loadComponents()).filter(component => component.short === dataName)[0]
-    if (component) {
-      title.innerHTML = `Analysis of contributions to ${component.name}${component.svg}`
-      document.getElementById('itemLink').href = component.href
-    }
+    const intervalId = setInterval(async function() {
+      const components = await loadComponents()
+      if (!components.updating) {
+        clearInterval(intervalId)
+        const component = components.filter(component => component.short === dataName)[0]
+        if (component) {
+          title.innerHTML = `Analysis of contributions to ${component.name}${component.svg}`
+          document.getElementById('itemLink').href = component.href
+        }
+      }
+    }, refreshRate)
   }
 }
 
@@ -659,6 +697,7 @@ function isLatinLetter(letter) {
 
 async function loadComponents() {
   const components = await callApi('GET', `${apiBaseUrl}/components`)
+  if (components.updating) return components
   components.sort(sortByName) // Sort alphabetically
 
   return components
@@ -666,6 +705,7 @@ async function loadComponents() {
 
 async function loadCompanies() {
   const companies = await callApi('GET', `${apiBaseUrl}/companies`)
+  if (companies.updating) return companies
   companies.sort(sortByName) // Sort alphabetically
 
   return companies
@@ -723,16 +763,10 @@ async function updateGraphs(keepComment = false, handleRedirect = true) {
 
     const loading = createLoading()
     div.append(loading)
-    const timeoutId = setTimeout(function() {
-      const text = document.createElement('text');
-      text.innerHTML = "Updating cache";
-      loading.append(text);
-    }, 5000)
-    updateGraph(div, tooltip).catch(function(e) {
+    updateGraph(div, tooltip, loading).catch(function(e) {
       div.append(createErrorMessage(e.message))
       console.error(e)
     }).finally(function() {
-      clearTimeout(timeoutId)
       div.removeChild(loading)
     })
   }

@@ -10,7 +10,9 @@ router.get('/', getComponents);
 router.post('/:component/:metrics', officialApi);
 
 async function getComponents(req, res, next) {
-  const components = await utils.loadComponents();
+  const components = utils.loadComponents();
+  if (components.updating) return await res.json(components);
+
   await res.json(components.filter(component => component.short !== 'all'));
 }
 
@@ -22,7 +24,9 @@ async function officialApi(req, res, next) {
 
   let response = {};
   try {
-    const components = await utils.loadComponents();
+    const components = utils.loadComponents();
+    if (components.updating) return await res.json(components);
+
     for (const c of components) {
       if (c.short === component) {
         response.data = await utils.loadData(
@@ -31,6 +35,7 @@ async function officialApi(req, res, next) {
           periods,
           (companies && companies[0] === 'all') ? undefined : companies,
         );
+        // direct return, do not need to handle "updating" state
         break;
       }
     }

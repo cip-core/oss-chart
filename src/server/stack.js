@@ -20,7 +20,9 @@ router.get('/:stack/details', getDetails);
 router.post('/:stack/:metrics', officialApi);
 
 async function getComponentStacks(req, res, next) {
-  const components = await utils.loadComponents();
+  const components = utils.loadComponents();
+  if (components.updating) return await res.json(components);
+
   const stacks = JSON.parse(JSON.stringify(await utils.getComponentStacks()));
   for (const stack of stacks) {
     stack.components = stack.components.map(function (short) {
@@ -121,40 +123,47 @@ async function officialApi(req, res, next) {
 
   try {
     const stack = await utils.loadStacks(stackName);
-    if (stack) {
-      const response = Object.assign({}, stack)
-      const rows = []
-      let columns = []
+    if (!stack) {
+      res.statusCode = 404;
+      return await res.json({message: `Stack "${stackName}" does not exist`});
+    }
 
-      for (const component of response.components) {
-        const data = Object.assign({}, await utils.loadData(component, metrics, periods, companies))
-        columns = data.data.columns
+    const response = Object.assign({}, stack)
+    const rows = []
+    let columns = []
 
-        for (const column of columns.slice(1)) {
-          for (const company of data.data.rows) {
-            const companyIndex = rows.map(c => c.name).indexOf(company.name)
-            if (companyIndex === -1) {
-              const companyData = {
-                name: company.name,
-                updatedAt: company.updatedAt,
-              }
-              companyData[column] = company[column] || 0
-              rows.push(companyData)
-            } else {
-              const companyData = rows[companyIndex]
-              companyData[column] = (companyData[column] || 0) + (company[column] || 0)
-              companyData.updatedAt = company.updatedAt
+    let updating = undefined
+    for (const component of response.components) {
+      const data = Object.assign({}, await utils.loadData(component, metrics, periods, companies))
+      if (data.updating) {
+        if (!updating) await res.json(data)
+        updating = data
+      }
+      columns = data.data.columns
+
+      for (const column of columns.slice(1)) {
+        for (const company of data.data.rows) {
+          const companyIndex = rows.map(c => c.name).indexOf(company.name)
+          if (companyIndex === -1) {
+            const companyData = {
+              name: company.name,
+              updatedAt: company.updatedAt,
             }
+            companyData[column] = company[column] || 0
+            rows.push(companyData)
+          } else {
+            const companyData = rows[companyIndex]
+            companyData[column] = (companyData[column] || 0) + (company[column] || 0)
+            companyData.updatedAt = company.updatedAt
           }
         }
       }
-
-      response.data = { rows, columns }
-      return await res.json(response);
     }
 
-    res.statusCode = 404;
-    await res.json({message: `Stack "${stackName}" does not exist`});
+    if (!updating) {
+      response.data = {rows, columns}
+      return await res.json(response)
+    }
   } catch (e) {
     console.error(e)
     res.statusCode = e.response ? e.response.status : 500;
