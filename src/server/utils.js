@@ -59,7 +59,7 @@ async function loadCompanies(component) {
 function shouldUpdateCache(cachedData, periods) {
   // no cache
   if (!cachedData) {
-    return true
+    return { shouldUpdate: true, allUpdating: false }
   }
 
   let shouldUpdate = false
