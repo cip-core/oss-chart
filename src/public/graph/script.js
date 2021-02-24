@@ -138,6 +138,38 @@ async function callApi(method, url, data) {
   return response.json(); // parses JSON response into native JavaScript objects
 }
 
+const colorPalette = d3.schemeSet1;
+colorPalette[5] = '#e8c500'; // change yellow to dark yellow
+colorPalette.push('#303030'); // add dark grey
+
+function invertData(data, subgroups) {
+  let newSubgroups = data.map(d => d.name)
+  const dict = {}
+  for (const row of data) {
+    for (const subgroup of subgroups) {
+      let values = dict[subgroup]
+      if (!values) {
+        values = {}
+        dict[subgroup] = values
+      }
+      const rowSubgroup = row[subgroup]
+      rowSubgroup.short = row.short
+      values[row.name] = rowSubgroup
+    }
+  }
+
+  data = Object.entries(dict).map(function (entry) {
+    return Object.assign({name: entry[0]}, entry[1])
+  })
+  subgroups = newSubgroups
+
+  return {
+    data,
+    subgroups,
+    columns: ["name"].concat(subgroups),
+  }
+}
+
 function buildChart(parent, data, periods, tooltip) {
   let invertedData = parent.getAttribute('data-inverted') !== null
 
@@ -169,26 +201,10 @@ function buildChart(parent, data, periods, tooltip) {
   const maxPercentage = getUpperLimit(data)
 
   if (invertedData) {
-    let newSubgroups = data.map(d => d.name)
-    const dict = {}
-    for (const row of data) {
-      for (const subgroup of subgroups) {
-        let values = dict[subgroup]
-        if (!values) {
-          values = {}
-          dict[subgroup] = values
-        }
-        const rowSubgroup = row[subgroup]
-        rowSubgroup.short = row.short
-        values[row.name] = rowSubgroup
-      }
-    }
-
-    data = Object.entries(dict).map(function (entry) {
-      return Object.assign({name: entry[0]}, entry[1])
-    })
-    subgroups = newSubgroups
-    columns = ["name"].concat(subgroups)
+    const output = invertData(data, subgroups)
+    data = output.data
+    subgroups = output.subgroups
+    columns = output.columns
   }
 
   const firstColumn = columns[0]
@@ -198,49 +214,72 @@ function buildChart(parent, data, periods, tooltip) {
     groups = groups.map(p => periods[p])
   }
 
-  const yAxisLabelWidth = 10
+  const legendDiv = document.createElement('div')
+  legendDiv.classList.add('svgLegend')
+  const chartDiv = document.createElement('div')
+  chartDiv.classList.add('svgChart')
+  const leftAxisDiv = document.createElement('div')
+  leftAxisDiv.classList.add('svgAxis')
+
+  const containerDiv = document.createElement('div')
+  containerDiv.classList.add('svgContainer')
+
+  containerDiv.append(leftAxisDiv)
+  containerDiv.append(chartDiv)
+  containerDiv.append(legendDiv)
+
+  parent.append(containerDiv)
+
   // set the dimensions and margins of the graph
-  const margin = {top: 10, right: 0, bottom: 15, left: 30}
-  margin.left += yAxisLabelWidth
+  const margin = {top: 10, right: 0, bottom: 15, left: 30, yAxisLabelWidth: 10}
+  margin.left += margin.yAxisLabelWidth
 
   let svgWidth = Math.min(25 * subgroups.length * groups.length * (1 + 2 / subgroups.length), parent.offsetWidth)
   svgWidth = Math.max(svgWidth, 10 * subgroups.length * groups.length * (1 + 2 / subgroups.length))
-  const chartWidth = svgWidth - margin.left - margin.right
   let svgHeight = 270
-  const chartHeight = svgHeight - margin.top - margin.bottom
 
-  // append the svg object to the body of the page
-  let svg2 = d3.create('svg')
-  svg2
-    .attr("width", chartWidth - margin.left)
-    .attr("height", svgHeight)
-
-  // Add X axis
-  let x = d3.scaleBand()
-    .domain(groups)
-    .range([0, chartWidth - margin.left ])
-    .padding([1 / (subgroups.length + 1)])
-
-  // Add Y axis
-  let y = d3.scaleLinear()
-    .domain([0, maxPercentage])
-    .range([ chartHeight, 0 ]);
-
-  // Another scale for subgroup position?
-  let xSubgroup = d3.scaleBand()
-    .domain(subgroups)
-    .range([0, x.bandwidth()])
-    .padding([0.05])
-
-  // color palette = one color per subgroup
-  const colorPalette = d3.schemeSet1
-  colorPalette[5] = '#e8c500' // change yellow to dark yellow
-  if (colorPalette.length === 9) colorPalette.push('#303030') // add dark grey
   let color = d3.scaleOrdinal()
     .domain(subgroups)
     .range(colorPalette)
 
-  let lastMax = 0
+  const chartHeight = svgHeight - margin.top - margin.bottom
+  // Add Y axis
+  let y = d3.scaleLinear()
+      .domain([0, maxPercentage])
+      .range([ chartHeight, 0 ]);
+
+  const svg1 = drawLeftAxis(y, svgHeight, margin)
+  const svg3 = drawLegend(subgroups, color, 15, invertedData ? undefined : periods)
+
+  // Draw left axis
+  d3.select(leftAxisDiv).append(() => svg1.node())
+  const bbox = svg1.node().getBBox()
+  const leftAxisPadding = 1.5
+  svg1.attr('width', bbox.width + leftAxisPadding)
+      .attr('height', bbox.height + 5)
+
+  // Draw legend
+  d3.select(legendDiv).append(() => svg3.node())
+  const legendWidth = svg3.node().getBBox().width
+  svg3.attr('width', legendWidth)
+
+  const chartWidth = svgWidth - margin.left - margin.right - legendWidth - leftAxisPadding
+  // Add X axis
+  let x = d3.scaleBand()
+      .domain(groups)
+      .range([0, chartWidth - margin.left ])
+      .padding([1 / (subgroups.length + 1)])
+  let xSubgroup = d3.scaleBand()
+      .domain(subgroups)
+      .range([0, x.bandwidth()])
+      .padding([0.05])
+
+  // Build chart SVG
+  let svg2 = d3.create('svg')
+  svg2
+      .attr("width", chartWidth - margin.left)
+      .attr("height", svgHeight)
+
   // Show the bars
   const chart = svg2.append("g")
     .attr("class", "chart")
@@ -280,9 +319,7 @@ function buildChart(parent, data, periods, tooltip) {
     .attr("y", function(d) { return y(d.percentage); })
     .attr("width", xSubgroup.bandwidth())
     .attr("height", function(d) {
-      const height = chartHeight - y(d.percentage)
-      if (d.isLast) lastMax = Math.max(lastMax, height)
-      return height;
+      return chartHeight - y(d.percentage);
     })
     .on("mouseout", function(d) {
       fadeOutTooltip(tooltip)
@@ -345,92 +382,8 @@ function buildChart(parent, data, periods, tooltip) {
     })
   }
 
-  const size = xSubgroup.bandwidth()
-  const spaceBetween = 5
-  // Append legend
-  let svg1 = d3.create('svg')
-  let legend = svg1.append("g")
-    .attr("class", "legend")
-    //.attr("transform", `translate(${svgWidth + yAxisLabelWidth - 55 - spaceBetween - size}, 0)`)
-
-  const legendWidth = 35 + spaceBetween + size
-  const legendHeight = (size + spaceBetween) * subgroups.length - spaceBetween
-  const sum = lastMax + legendHeight + margin.bottom + spaceBetween
-  if (sum > svgHeight) {
-    if (svgWidth + legendWidth < parent.offsetWidth) {
-      //svg.attr("width", svgWidth + legendWidth)
-      legend = legend.attr("transform", `translate(${svgWidth}, 0)`)
-    } else {
-      //svg.attr("height", sum)
-      chart.attr('transform', `translate(0, ${sum - svgHeight})`)
-      margin.top += sum - svgHeight
-    }
-    svgHeight = sum
-  }
-  svg1.attr("width", legendWidth)
-  svg1.attr("height", legendHeight)
-
-  legend = legend.selectAll("g")
-    .data(subgroups)
-    .enter()
-  legend.append("rect")
-    .attr("x", 0)
-    .attr("y", function(d,i){ return 0 + i * (size + spaceBetween)}) // 0 is where the first dot appears. 5 is the distance between dots
-    .attr("width", size)
-    .attr("height", size)
-    .style("fill", function(d){ return color(d)})
-  legend.append("text")
-    .attr("class", "legendText")
-    .attr("x", size + spaceBetween)
-    .attr("y", function(d,i){ return 0 + i * (size + spaceBetween) + (size / 2)}) // 0 is where the first dot appears. 5 is the distance between dots
-    .style("fill", function(d){ return color(d)})
-    .text(function(d){
-      if (invertedData) return d
-      const time = periods[d]
-      return time[0].toUpperCase() + time.slice(1)
-    })
-    .attr("text-anchor", "left")
-    .style("alignment-baseline", "middle")
-
-  const svg3 = d3.create('svg')
-  svg3.attr('height', svgHeight)
-  svg3.append("g")
-    .attr("transform", `translate(${margin.left}, ${margin.top})`)
-    .call(d3.axisLeft(y));
-
-  svg3.append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("y", yAxisLabelWidth)
-    .attr("x", 0 - (chartHeight / 2))
-    .attr("font-size", 10)
-    .style("text-anchor", "middle")
-    .text("Percentage");
-
-  const legendDiv = document.createElement('div')
-  legendDiv.classList.add('svgLegend')
-  const chartDiv = document.createElement('div')
-  chartDiv.classList.add('svgChart')
-  const leftAxisDiv = document.createElement('div')
-  leftAxisDiv.classList.add('svgAxis')
-
-  const containerDiv = document.createElement('div')
-  containerDiv.classList.add('svgContainer')
-
-  containerDiv.append(leftAxisDiv)
-  containerDiv.append(chartDiv)
-  containerDiv.append(legendDiv)
-
-  parent.append(containerDiv)
-
-  d3.select(legendDiv).append(() => svg1.node())
   d3.select(chartDiv).append(() => svg2.node())
-  d3.select(leftAxisDiv).append(() => svg3.node())
 
-  svg1.attr('width', svg1.node().getBBox().width)
-
-  const bbox = svg3.node().getBBox()
-  svg3.attr('width', bbox.width + 1.5)
-      .attr('height', bbox.height + 5)
   const lines = {}
   lines.max = 0
   svg2.append("g")
@@ -443,6 +396,78 @@ function buildChart(parent, data, periods, tooltip) {
   svg2.attr("height", svgHeight)
   containerDiv.style.height = `${svgHeight + 20}px`
   containerDiv.style.maxWidth = `${svgWidth - margin.left}px`
+}
+
+function drawLeftAxis(y, height, margin) {
+  const svg = d3.create('svg')
+  svg.attr('height', height)
+  svg.append("g")
+      .attr("transform", `translate(${margin.left}, ${margin.top})`)
+      .call(d3.axisLeft(y));
+
+  svg.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", margin.yAxisLabelWidth)
+      .attr("x", 0 - ((height - margin.top - margin.bottom) / 2))
+      .attr("font-size", 10)
+      .style("text-anchor", "middle")
+      .text("Percentage");
+
+  return svg;
+}
+
+function drawLegend(subgroups, color, size, periods) {
+  const spaceBetween = 5
+
+  // Create SVG
+  let svg = d3.create('svg')
+
+  let legend = svg.append("g")
+      .attr("class", "legend")
+  //.attr("transform", `translate(${svgWidth + yAxisLabelWidth - 55 - spaceBetween - size}, 0)`)
+
+  const legendWidth = 35 + spaceBetween + size
+  const legendHeight = (size + spaceBetween) * subgroups.length - spaceBetween
+  /*
+  const sum = legendHeight + margin.bottom + spaceBetween // + lastMax
+  if (sum > svgHeight) {
+    if (svgWidth + legendWidth < parent.offsetWidth) {
+      //svg.attr("width", svgWidth + legendWidth)
+      legend = legend.attr("transform", `translate(${svgWidth}, 0)`)
+    } else {
+      //svg.attr("height", sum)
+      chart.attr('transform', `translate(0, ${sum - svgHeight})`)
+      margin.top += sum - svgHeight
+    }
+    svgHeight = sum
+  }
+   */
+  svg.attr("width", legendWidth)
+  svg.attr("height", legendHeight)
+
+  legend = legend.selectAll("g")
+      .data(subgroups)
+      .enter()
+  legend.append("rect")
+      .attr("x", 0)
+      .attr("y", function(d,i){ return 0 + i * (size + spaceBetween)}) // 0 is where the first dot appears. 5 is the distance between dots
+      .attr("width", size)
+      .attr("height", size)
+      .style("fill", function(d){ return color(d)})
+  legend.append("text")
+      .attr("class", "legendText")
+      .attr("x", size + spaceBetween)
+      .attr("y", function(d,i){ return 0 + i * (size + spaceBetween) + (size / 2)}) // 0 is where the first dot appears. 5 is the distance between dots
+      .style("fill", function(d){ return color(d)})
+      .text(function(d){
+        if (!periods) return d
+        const time = periods[d]
+        return time[0].toUpperCase() + time.slice(1)
+      })
+      .attr("text-anchor", "left")
+      .style("alignment-baseline", "middle")
+
+  return svg
 }
 
 function wrap(text, width, lines) {
