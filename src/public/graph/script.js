@@ -345,7 +345,7 @@ function buildChart(parent, data, periods, tooltip) {
           .duration(200)
           .style("opacity", .9);
       const time = periods[d.key]
-      const text = `Last ${time.long} : ${d.value} (${d.percentage}%)<br>`
+      const text = `Last ${time} : ${d.value} (${d.percentage}%)<br>`
           + `<i>Updated ${dateInterval(new Date(d.updatedAt), new Date())}</i><br>`
           + `Click for more details`
       tooltip.html(text)
