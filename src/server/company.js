@@ -56,6 +56,7 @@ async function officialApi(req, res, next) {
       if (data.updating) {
         if (!updating) await res.json(data)
         updating = data
+        continue
       }
       data.data.rows.map(function (row) {
         row.name = componentData.name;

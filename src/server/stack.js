@@ -138,6 +138,7 @@ async function officialApi(req, res, next) {
       if (data.updating) {
         if (!updating) await res.json(data)
         updating = data
+        continue
       }
       columns = data.data.columns
 
