@@ -34,12 +34,15 @@ async function officialApi(req, res, next) {
       rows: [],
       columns: [],
     };
-    const componentsData = await utils.loadComponents();
+    const componentsData = utils.loadComponents();
+    if (componentsData.updating) return await res.json(componentsData);
+
     const componentsShort = componentsData.map(component => component.short);
     const allComponents = components[0] === 'all';
     if (allComponents) components = componentsShort;
     components = components.filter(c => c !== 'all')
 
+    let updating = undefined
     for (const component of components) {
       const index = componentsShort.indexOf(component);
       if (index === -1) continue;
@@ -50,6 +53,11 @@ async function officialApi(req, res, next) {
         periods,
         [ company ],
       )
+      if (data.updating) {
+        if (!updating) await res.json(data)
+        updating = data
+        continue
+      }
       data.data.rows.map(function (row) {
         row.name = componentData.name;
         row.short = componentData.short;
@@ -60,7 +68,7 @@ async function officialApi(req, res, next) {
     }
     response.columns = response.columns.filter((value, index, self) => self.indexOf(value) === index);
 
-    return await res.json({ data: response });
+    if (!updating) return await res.json({ data: response });
   } catch (e) {
     console.error(e)
     const response = e.response;

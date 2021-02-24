@@ -40,6 +40,7 @@ const stacksLocalCache = {}
 async function loadCompanies(component) {
   // retrieve companies list
   const response = await loadData(component || 'all', 'hcomcontributions', [ 'y10' ])
+  if (response.updating) return response
   const companies = response.data.rows.map(company => company.name).slice(1)
 
   const companiesToAdd = []
@@ -58,36 +59,85 @@ async function loadCompanies(component) {
 function shouldUpdateCache(cachedData, periods) {
   // no cache
   if (!cachedData) {
-    return true
+    return { shouldUpdate: true, allUpdating: false }
   }
 
+  let shouldUpdate = false
+  let allUpdating = true
   for (const period of periods) {
-    const periodCache = cachedData[period]
+    let periodCache = cachedData[period]
     if (!periodCache) {
       // no cache
-      return true
+      periodCache = {}
+      periodCache.updateTriggered = new Date()
+      cachedData[period] = periodCache
+      allUpdating = false
+      shouldUpdate = true
     }
     if (new Date() - periodCache.updatedAt > cacheTime * 60 * 1000) {
       // cache expired
-      return true
+      if (!periodCache.updateTriggered) {
+        periodCache.updateTriggered = new Date()
+        allUpdating = false
+      }
+      shouldUpdate = true
     }
   }
 
-  return false
+  return { shouldUpdate, allUpdating: shouldUpdate ? allUpdating : false }
+}
+
+async function updateCache(component, metrics, periods) {
+  triggers.data = new Date()
+
+  const data = await loadFromDevstats(component, metrics, periods)
+  if (periods.length + 1 > data.columns.length) {
+    data.columns = [data.columns[0]].concat(periods)
+  }
+  const rowsToAdd = saveToLocalCache(component, metrics, data)
+  await saveComponentsCacheToDatabase(rowsToAdd)
+
+  durations.data.push(new Date() - triggers.data);
+  triggers.data = undefined;
+
+  return loadFromCache(component, metrics, periods)
+}
+
+const durations = {
+  data: [],
+  components: [],
+};
+const triggers = {
+  data: undefined,
+  components: undefined,
+};
+
+function generateWaitingResponse(type) {
+  const durationsList = durations[type]
+  const averageDuration = durationsList.length > 0 ? (durationsList.reduce((a, b) => a + b, 0) / durationsList.length) : 60000;
+  const trigger = triggers[type]
+  const timeLeft = trigger ? (averageDuration - (new Date() - trigger)) : 0;
+  const secondsLeft = Math.floor(timeLeft / 1000);
+  let message = 'Please try again in ';
+  message += secondsLeft <= 0 ? 'a few moments' : `${secondsLeft} seconds`;
+  return {
+    updating: true,
+    message: message,
+    wait: timeLeft,
+  };
 }
 
 async function loadData(component, metrics, periods, companies) {
   let cachedData = loadFromCache(component, metrics, periods)
 
-  if (shouldUpdateCache(cachedData, periods)) {
-    const data = await loadFromDevstats(component, metrics, periods)
-    if (periods.length + 1 > data.columns.length) {
-      data.columns = [data.columns[0]].concat(periods)
+  const { shouldUpdate, allUpdating } = shouldUpdateCache(cachedData, periods)
+  if (shouldUpdate) {
+    if (!allUpdating) {
+      updateCache(component, metrics, periods).then(function (data) {
+        cachedData = data
+      })
     }
-    const rowsToAdd = saveToLocalCache(component, metrics, data)
-    await saveComponentsCacheToDatabase(rowsToAdd)
-
-    cachedData = loadFromCache(component, metrics, periods)
+    return generateWaitingResponse('data')
   }
 
   const rows = {}
@@ -360,14 +410,17 @@ async function loadStacks(name) {
   return stacksLocalCache[name]
 }
 
-async function loadComponents() {
+function loadComponents() {
   if (componentsCache === undefined) {
-    await updateComponents();
+    if (!triggers.components) updateComponents();
+    return generateWaitingResponse('components')
   }
   return componentsCache;
 }
 
 async function updateComponents() {
+  triggers.components = new Date();
+
   const promises = [];
   const components = {};
 
@@ -412,6 +465,10 @@ async function updateComponents() {
     component.href,
     component.svg,
   ]));
+
+  durations.components.push(new Date() - triggers.components);
+  triggers.components = undefined;
+
   return componentsCache;
 }
 
