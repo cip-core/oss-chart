@@ -116,7 +116,8 @@ async function officialApi(req, res, next) {
   const stackName = req.params.stack;
   const metrics = req.params.metrics;
 
-  const { periods, companies } = req.body;
+  let { periods, companies } = req.body;
+  companies = (companies && companies[0] === 'all') ? undefined : companies;
 
   try {
     const stack = await utils.loadStacks(stackName);
