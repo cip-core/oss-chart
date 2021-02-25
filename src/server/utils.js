@@ -57,9 +57,11 @@ async function loadCompanies(component) {
 }
 
 function shouldUpdateCache(cachedData, periods) {
+  let lastTriggered = new Date()
+
   // no cache
   if (!cachedData) {
-    return { shouldUpdate: true, allUpdating: false }
+    return { shouldUpdate: true, allUpdating: false, lastTriggered }
   }
 
   let shouldUpdate = false
@@ -82,13 +84,16 @@ function shouldUpdateCache(cachedData, periods) {
       }
       shouldUpdate = true
     }
+    if (periodCache.updateTriggered && periodCache.updateTriggered > lastTriggered) {
+      lastTriggered = periodCache.updateTriggered
+    }
   }
 
-  return { shouldUpdate, allUpdating: shouldUpdate ? allUpdating : false }
+  return { shouldUpdate, allUpdating: shouldUpdate ? allUpdating : false, lastTriggered }
 }
 
 async function updateCache(component, metrics, periods) {
-  triggers.data = new Date()
+  const trigger = new Date()
 
   const data = await loadFromDevstats(component, metrics, periods)
   if (periods.length + 1 > data.columns.length) {
@@ -97,8 +102,7 @@ async function updateCache(component, metrics, periods) {
   const rowsToAdd = saveToLocalCache(component, metrics, data)
   await saveComponentsCacheToDatabase(rowsToAdd)
 
-  durations.data.push(new Date() - triggers.data);
-  triggers.data = undefined;
+  durations.data.push(new Date() - trigger);
 
   return loadFromCache(component, metrics, periods)
 }
@@ -107,16 +111,11 @@ const durations = {
   data: [],
   components: [],
 };
-const triggers = {
-  data: undefined,
-  components: undefined,
-};
 
-function generateWaitingResponse(type) {
+function generateWaitingResponse(type, triggeredSince) {
   const durationsList = durations[type]
   const averageDuration = durationsList.length > 0 ? (durationsList.reduce((a, b) => a + b, 0) / durationsList.length) : 60000;
-  const trigger = triggers[type]
-  const timeLeft = trigger ? (averageDuration - (new Date() - trigger)) : 0;
+  const timeLeft = averageDuration - (new Date() - triggeredSince);
   const secondsLeft = Math.floor(timeLeft / 1000);
   let message = 'Please try again in ';
   message += secondsLeft <= 0 ? 'a few moments' : `${secondsLeft} seconds`;
@@ -130,14 +129,14 @@ function generateWaitingResponse(type) {
 async function loadData(component, metrics, periods, companies) {
   let cachedData = loadFromCache(component, metrics, periods)
 
-  const { shouldUpdate, allUpdating } = shouldUpdateCache(cachedData, periods)
+  const { shouldUpdate, allUpdating, lastTriggered } = shouldUpdateCache(cachedData, periods)
   if (shouldUpdate) {
     if (!allUpdating) {
       updateCache(component, metrics, periods).then(function (data) {
         cachedData = data
       })
     }
-    return generateWaitingResponse('data')
+    return generateWaitingResponse('data', lastTriggered)
   }
 
   const rows = {}
@@ -413,14 +412,14 @@ async function loadStacks(name) {
 
 function loadComponents() {
   if (componentsCache === undefined) {
-    if (!triggers.components) updateComponents();
-    return generateWaitingResponse('components')
+    if (durations.components.length === 0) updateComponents();
+    return generateWaitingResponse('components', new Date())
   }
   return componentsCache;
 }
 
 async function updateComponents() {
-  triggers.components = new Date();
+  const trigger = new Date();
 
   const promises = [];
   const components = {};
@@ -467,8 +466,7 @@ async function updateComponents() {
     component.svg,
   ]));
 
-  durations.components.push(new Date() - triggers.components);
-  triggers.components = undefined;
+  durations.components.push(new Date() - trigger);
 
   return componentsCache;
 }
