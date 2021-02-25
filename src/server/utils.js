@@ -225,6 +225,7 @@ function saveToLocalCache(component, metrics, data) {
       metricCache[period] = periodCache
     }
     periodCache.updatedAt = now
+    delete periodCache.updateTriggered
 
     for (const row of data.rows) {
       const company = row[mainColumn]
