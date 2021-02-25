@@ -116,7 +116,7 @@ function generateWaitingResponse(type, triggeredSince) {
   const durationsList = durations[type]
   const averageDuration = durationsList.length > 0 ? (durationsList.reduce((a, b) => a + b, 0) / durationsList.length) : 60000;
   const timeLeft = averageDuration - (new Date() - triggeredSince);
-  const secondsLeft = Math.floor(timeLeft / 1000);
+  const secondsLeft = Math.ceil(timeLeft / 1000);
   let message = 'Please try again in ';
   message += secondsLeft <= 0 ? 'a few moments' : `${secondsLeft} seconds`;
   return {
