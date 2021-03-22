@@ -625,6 +625,8 @@ async function reloadSamePage(parent, kind, query) {
     page.removeChild(loading)
   }
 
+  window.scrollTo(0, 0)
+
   const attributes = parent.attributes
   const graphDiv = document.createElement('div')
   for (const attr of attributes) {
