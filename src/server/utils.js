@@ -370,19 +370,35 @@ function getComponentStacks(name) {
 async function fetchData(component, query) {
   const body = queryToBody(query)
 
-  const url = `https://${component ? (component + '.') : ''}${hostname}/api/tsdb/query`
+  const url = `https://${component ? (component + '.') : ''}${hostname}/api/ds/query`
   console.log(`[${new Date().toISOString()}] ${url} : ${query}`)
   return await axios.post(url, body)
 }
 
 function processData(data) {
-  const table = data.results['A'].tables[0]
-  table.columns = table.columns.map(obj => obj.text)
+  const frame = data.results['A'].frames[0]
+  frame.columns = frame.schema.fields.map(obj => obj.name)
 
-  const mainColumn = table.columns[0]
+  const rows = []
+  for (const column of frame.data.values) {
+    let i = 0
+    for (const columnRow of column) {
+      let row = rows[i]
+      if (row === undefined) {
+        row = []
+        rows.push(row)
+      }
+      row.push(columnRow)
+      i++
+    }
+  }
+  frame.data.rows = rows
+
+  const mainColumn = frame.columns[0]
   const dictValues = {}
   const keys = [mainColumn]
-  table.rows.map(function(row) {
+
+  frame.data.rows.map(function(row) {
     const x = row[0]
     let obj = dictValues[x]
     if (!obj) {
