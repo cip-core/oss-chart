@@ -126,16 +126,29 @@ function generateWaitingResponse(type, triggeredSince) {
   };
 }
 
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function loadData(component, metrics, periods, companies) {
   let cachedData = loadFromCache(component, metrics, periods)
 
   const { shouldUpdate, allUpdating, lastTriggered } = shouldUpdateCache(cachedData, periods)
   if (shouldUpdate) {
+    let isError
     if (!allUpdating) {
-      updateCache(component, metrics, periods).then(function (data) {
-        cachedData = data
-      })
+      updateCache(component, metrics, periods)
+        .then(function (data) {
+          cachedData = data
+        })
+        .catch(function (error) {
+          console.error(error)
+          isError = error
+        })
+      await sleep(1000)
+      if (isError) throw isError
     }
+    
     return generateWaitingResponse('data', lastTriggered)
   }
 
