@@ -132,9 +132,13 @@ async function loadData(component, metrics, periods, companies) {
   const { shouldUpdate, allUpdating, lastTriggered } = shouldUpdateCache(cachedData, periods)
   if (shouldUpdate) {
     if (!allUpdating) {
-      updateCache(component, metrics, periods).then(function (data) {
-        cachedData = data
-      })
+      updateCache(component, metrics, periods)
+        .then(function (data) {
+          cachedData = data
+        })
+        .catch(function (error) {
+          console.error(error)
+        })
     }
     return generateWaitingResponse('data', lastTriggered)
   }
