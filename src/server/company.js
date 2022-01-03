@@ -10,8 +10,27 @@ router.get('/', getCompanies);
 router.post('/:company/:metrics', officialApi);
 
 async function getCompanies(req, res, next) {
-  const companies = await utils.loadCompanies()
-  await res.json(companies)
+  try {
+    const companies = await utils.loadCompanies()
+    await res.json(companies)
+  } catch(e) {
+    console.error(e)
+    if (e.isAxiosError && e.response) {
+      const response = e.response
+      res.statusCode = response.status
+      res.statusText = response.statusText
+
+      const contentType = response.headers['content-type']
+      if (contentType === 'text/html') {
+        await res.send(response.data)
+      } else if (contentType === 'application/json') {
+        await res.json(response.data)
+      }
+    } else {
+      res.statusCode = 500
+      await res.json({message: 'Unknown error'})
+    }
+  }
 }
 
 async function officialApi(req, res, next) {
