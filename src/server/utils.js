@@ -148,7 +148,7 @@ async function loadData(component, metrics, periods, companies) {
       await sleep(1000)
       if (isError) throw isError
     }
-    
+
     return generateWaitingResponse('data', lastTriggered)
   }
 
@@ -385,6 +385,7 @@ async function fetchData(component, query) {
 
   const url = `https://${component ? (component + '.') : ''}${hostname}/api/ds/query`
   console.log(`[${new Date().toISOString()}] ${url} : ${query}`)
+  console.log(body)
   return await axios.post(url, body)
 }
 
