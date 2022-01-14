@@ -402,7 +402,7 @@ function buildChart(parent, data, periods, tooltip) {
 
       const page = await reloadSamePage(parent, expectedKind, query)
       updatePageTitle(page, query['data-kind'], query['data-name'])
-      updateGraphs(false, false)
+      updateGraphs()
     })
   }
 
@@ -717,7 +717,36 @@ async function loadStack(name) {
   return await callApi('GET', `${apiBaseUrl}/stacks/${name}/details`)
 }
 
-async function updateGraphs(keepComment = false, handleRedirect = true) {
+async function updateGraphPromise(div, tooltip, keepComment) {
+  const svgContainer = div.querySelector('.svgContainer')
+  if (svgContainer) svgContainer.remove()
+
+  if (!keepComment) {
+    const defaultComment = div.querySelector('.graphComment.default')
+    if (!defaultComment) {
+      const comments = div.querySelectorAll('.graphComment')
+      for (const comment of comments) {
+        const classes = comment.getAttribute('class').split(' ')
+        if (classes.indexOf('edited') === -1) classes.push('edited')
+        comment.setAttribute('class', classes.join(' '))
+      }
+      if (comments.length > 0) insertDefaultComment(div)
+    }
+  }
+
+  const loading = createLoading()
+  div.append(loading)
+  try {
+    await updateGraph(div, tooltip, loading)
+  } catch(e) {
+    div.append(createErrorMessage(e.message))
+    console.error(e)
+  } finally {
+    div.removeChild(loading)
+  }
+}
+
+async function updateGraphs({ keepComment = false, handleRedirect = true, batches = 10 }) {
   let tooltip = d3.select("#graphTooltip");
   if (tooltip.empty()) {
     tooltip = d3.select("body").append("div")
@@ -746,30 +775,14 @@ async function updateGraphs(keepComment = false, handleRedirect = true) {
   }
 
   const divs = document.querySelectorAll('div.graph')
+  const promises = []
   for (const div of divs) {
-    const svgContainer = div.querySelector('.svgContainer')
-    if (svgContainer) svgContainer.remove()
-
-    if (!keepComment) {
-      const defaultComment = div.querySelector('.graphComment.default')
-      if (!defaultComment) {
-        const comments = div.querySelectorAll('.graphComment')
-        for (const comment of comments) {
-          const classes = comment.getAttribute('class').split(' ')
-          if (classes.indexOf('edited') === -1) classes.push('edited')
-          comment.setAttribute('class', classes.join(' '))
-        }
-        if (comments.length > 0) insertDefaultComment(div)
-      }
+    promises.push(updateGraphPromise(div, tooltip, keepComment))
+    if (promises.length >= batches) {
+      await Promise.allSettled(promises)
+      while (promises.length > 0) promises.pop()
     }
-
-    const loading = createLoading()
-    div.append(loading)
-    updateGraph(div, tooltip, loading).catch(function(e) {
-      div.append(createErrorMessage(e.message))
-      console.error(e)
-    }).finally(function() {
-      div.removeChild(loading)
-    })
   }
+
+  if (promises.length > 0) await Promise.allSettled(promises)
 }
