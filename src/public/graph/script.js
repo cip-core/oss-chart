@@ -402,7 +402,7 @@ function buildChart(parent, data, periods, tooltip) {
 
       const page = await reloadSamePage(parent, expectedKind, query)
       updatePageTitle(page, query['data-kind'], query['data-name'])
-      updateGraphs()
+      updateGraphs({ keepComment: false, handleRedirect: false })
     })
   }
 
@@ -746,7 +746,7 @@ async function updateGraphPromise(div, tooltip, keepComment) {
   }
 }
 
-async function updateGraphs({ keepComment = false, handleRedirect = true, batches = 10 }) {
+async function updateGraphs({ keepComment = true, handleRedirect = true, batches = 10 }) {
   let tooltip = d3.select("#graphTooltip");
   if (tooltip.empty()) {
     tooltip = d3.select("body").append("div")
