@@ -19,6 +19,7 @@ async function init() {
   if (config.POSTGRESQL_HOST) await initDatabase()
 
   app.enable('trust proxy')
+  app.get('/health', livenessCheck)
   app.use(cors)
   app.use(preprocessRequest)
   app.use(logRequest)
@@ -30,6 +31,13 @@ async function init() {
   app.use('/companies', companyRoute)
 
   return app
+}
+
+async function livenessCheck(req, res, next) {
+  const headers = req.headers
+  console.log(headers)
+
+  await res.send('OK')
 }
 
 async function loadScript(req, res, next) {
