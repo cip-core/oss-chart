@@ -34,8 +34,10 @@ async function init() {
 }
 
 async function livenessCheck(req, res, next) {
-  const host = req.headers.host
+  const headers = req.headers
+  console.log(headers)
 
+  const host = headers.host
   if (host === `localhost:${port}`) {
     return await res.send('OK')
   }
