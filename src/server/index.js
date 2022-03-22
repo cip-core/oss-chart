@@ -7,6 +7,7 @@ const config = require('./config')
 const componentRoute = require('./component')
 const stackRoute = require('./stack')
 const companyRoute = require('./company')
+const res = require('express/lib/response')
 
 const app = express()
 
@@ -19,6 +20,7 @@ async function init() {
   if (config.POSTGRESQL_HOST) await initDatabase()
 
   app.enable('trust proxy')
+  app.get('/ready', startCheck)
   app.get('/health', livenessCheck)
   app.use(cors)
   app.use(preprocessRequest)
@@ -33,17 +35,37 @@ async function init() {
   return app
 }
 
-async function livenessCheck(req, res, next) {
+function isLocalRequest(req) {
   const headers = req.headers
   console.log(headers)
 
-  const userAgent = headers['user-agent']
-  if (userAgent.indexOf('kube-probe/') === 0) {
-    return await res.send('OK')
+  const host = headers.host
+  return host.indexOf(`:${port}`) !== -1
+}
+
+async function livenessCheck(req, res, next) {
+  if (!isLocalRequest(req)) {
+    res.statusCode = 404
+    return await res.send()
   }
 
-  res.statusCode = 404
-  await res.send()
+  try {
+    await connectDatabase()
+    await res.send('OK')
+  } catch (e) {
+    console.error(e)
+    res.statusCode = 500
+    await res.send()
+  }
+}
+
+async function startCheck(req, res, next) {
+  if (!isLocalRequest(req)) {
+    res.statusCode = 404
+    return await res.send()
+  }
+
+  return await res.send('OK')
 }
 
 async function loadScript(req, res, next) {
@@ -55,7 +77,7 @@ async function loadScript(req, res, next) {
   await res.send(content)
 }
 
-async function initDatabase() {
+async function connectDatabase() {
   const database = require('./database')
 
   const clientConfig = {
@@ -66,6 +88,13 @@ async function initDatabase() {
     port: parseInt(config.POSTGRESQL_PORT),
   }
   await database.init(clientConfig)
+
+  return database
+}
+
+async function initDatabase() {
+  const database = await connectDatabase()
+
   if (config.RESET_DATABASE === 'true') {
     await database.dropTables()
   }
