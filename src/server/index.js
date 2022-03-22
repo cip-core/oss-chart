@@ -7,6 +7,7 @@ const config = require('./config')
 const componentRoute = require('./component')
 const stackRoute = require('./stack')
 const companyRoute = require('./company')
+const res = require('express/lib/response')
 
 const app = express()
 
@@ -16,12 +17,11 @@ app.use(bodyParser.urlencoded({
 }))
 
 async function init() {
-  try {
-    await initDatabase()
-  } catch (e) {
-    console.error(e)
-  }
+  if (config.POSTGRESQL_HOST) await initDatabase()
+
   app.enable('trust proxy')
+  app.get('/ready', startCheck)
+  app.get('/health', livenessCheck)
   app.use(cors)
   app.use(preprocessRequest)
   app.use(logRequest)
@@ -35,6 +35,39 @@ async function init() {
   return app
 }
 
+function isLocalRequest(req) {
+  const headers = req.headers
+  console.log(headers)
+
+  const host = headers.host
+  return host.indexOf(`:${port}`) !== -1
+}
+
+async function livenessCheck(req, res, next) {
+  if (!isLocalRequest(req)) {
+    res.statusCode = 404
+    return await res.send()
+  }
+
+  try {
+    await connectDatabase()
+    await res.send('OK')
+  } catch (e) {
+    console.error(e)
+    res.statusCode = 500
+    await res.send()
+  }
+}
+
+async function startCheck(req, res, next) {
+  if (!isLocalRequest(req)) {
+    res.statusCode = 404
+    return await res.send()
+  }
+
+  return await res.send('OK')
+}
+
 async function loadScript(req, res, next) {
   const host = req.headers.host
   const filePath = '/../public' + req.originalUrl
@@ -44,7 +77,7 @@ async function loadScript(req, res, next) {
   await res.send(content)
 }
 
-async function initDatabase() {
+async function connectDatabase() {
   const database = require('./database')
 
   const clientConfig = {
@@ -55,6 +88,13 @@ async function initDatabase() {
     port: parseInt(config.POSTGRESQL_PORT),
   }
   await database.init(clientConfig)
+
+  return database
+}
+
+async function initDatabase() {
+  const database = await connectDatabase()
+
   if (config.RESET_DATABASE === 'true') {
     await database.dropTables()
   }
@@ -124,12 +164,14 @@ function logRequestParams(req) {
     console.log(obj)
 }
 
+const port = config.PORT || 3000
+
 init().then(app => {
-    const port = 3000
     app.listen(port, () => {
         console.log(`[INFO] Listening on port ${port}`)
     })
 }).catch(e => {
     console.error(`[FATAL] Error starting server`)
     console.error(e)
+    process.exit(1)
 })

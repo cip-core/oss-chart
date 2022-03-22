@@ -7,10 +7,11 @@ let shouldLog
 
 async function init(clientConfig) {
   try {
-    client = new Client(clientConfig)
+    const tmpClient = new Client(clientConfig)
     console.log('Database connection...')
-    await client.connect()
+    await tmpClient.connect()
     console.log('Database connected')
+    client = tmpClient
   } catch (e) {
     console.error('Database connection error')
     client = undefined
