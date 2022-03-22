@@ -34,10 +34,14 @@ async function init() {
 }
 
 async function livenessCheck(req, res, next) {
-  const headers = req.headers
-  console.log(headers)
+  const host = req.headers.host
 
-  await res.send('OK')
+  if (host === `localhost:${port}`) {
+    return await res.send('OK')
+  }
+
+  res.statusCode = 404
+  await res.send()
 }
 
 async function loadScript(req, res, next) {
@@ -129,8 +133,9 @@ function logRequestParams(req) {
     console.log(obj)
 }
 
+const port = config.PORT || 3000
+
 init().then(app => {
-    const port = 3000
     app.listen(port, () => {
         console.log(`[INFO] Listening on port ${port}`)
     })
