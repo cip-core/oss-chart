@@ -37,8 +37,8 @@ async function livenessCheck(req, res, next) {
   const headers = req.headers
   console.log(headers)
 
-  const host = headers.host
-  if (host === `localhost:${port}`) {
+  const userAgent = headers['user-agent']
+  if (userAgent.indexOf('kube-probe/') === 0) {
     return await res.send('OK')
   }
 
