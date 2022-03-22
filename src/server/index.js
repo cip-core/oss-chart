@@ -16,11 +16,8 @@ app.use(bodyParser.urlencoded({
 }))
 
 async function init() {
-  try {
-    await initDatabase()
-  } catch (e) {
-    console.error(e)
-  }
+  if (config.POSTGRESQL_HOST) await initDatabase()
+
   app.enable('trust proxy')
   app.use(cors)
   app.use(preprocessRequest)
@@ -132,4 +129,5 @@ init().then(app => {
 }).catch(e => {
     console.error(`[FATAL] Error starting server`)
     console.error(e)
+    process.exit(1)
 })
